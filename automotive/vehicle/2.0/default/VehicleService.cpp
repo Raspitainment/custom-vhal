@@ -29,7 +29,7 @@ using ::android::hardware::automotive::vehicle::V2_0::VehiclePropertyStore;
 using ::android::hardware::automotive::vehicle::V2_0::impl::DefaultVehicleConnector;
 using ::android::hardware::automotive::vehicle::V2_0::impl::DefaultVehicleHal;
 
-int main(int /* argc */, char* /* argv */ []) {
+int main(int /* argc */, char * /* argv */[]) {
     auto store = std::make_unique<VehiclePropertyStore>();
     auto connector = std::make_unique<DefaultVehicleConnector>();
     auto hal = std::make_unique<DefaultVehicleHal>(store.get(), connector.get());
@@ -47,6 +47,7 @@ int main(int /* argc */, char* /* argv */ []) {
     }
 
     ALOGI("Ready");
+    ALOGI("(╯°□°）╯︵ ┻━┻ Raspitainment war hier 🎉🥳");
     android::hardware::joinRpcThreadpool();
 
     return 0;
