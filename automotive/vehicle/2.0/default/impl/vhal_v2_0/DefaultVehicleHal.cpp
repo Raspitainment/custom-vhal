@@ -15,13 +15,14 @@
  */
 #define LOG_TAG "DefaultVehicleHal_v2_0"
 
+#include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
 #include <android-base/chrono_utils.h>
 #include <assert.h>
 #include <stdio.h>
+#include <unordered_set>
 #include <utils/Log.h>
 #include <utils/SystemClock.h>
 #include <vhal_v2_0/RecurrentTimer.h>
-#include <unordered_set>
 
 #include "FakeObd2Frame.h"
 #include "PropertyUtils.h"
@@ -40,15 +41,14 @@ namespace impl {
 namespace {
 constexpr std::chrono::nanoseconds kHeartBeatIntervalNs = 3s;
 
-const VehicleAreaConfig* getAreaConfig(const VehiclePropValue& propValue,
-                                       const VehiclePropConfig* config) {
+const VehicleAreaConfig *getAreaConfig(const VehiclePropValue &propValue, const VehiclePropConfig *config) {
     if (isGlobalProp(propValue.prop)) {
         if (config->areaConfigs.size() == 0) {
             return nullptr;
         }
         return &(config->areaConfigs[0]);
     } else {
-        for (auto& c : config->areaConfigs) {
+        for (auto &c : config->areaConfigs) {
             if (c.areaId == propValue.areaId) {
                 return &c;
             }
@@ -63,7 +63,7 @@ VehicleHal::VehiclePropValuePtr addTimestamp(VehicleHal::VehiclePropValuePtr v) 
     }
     return v;
 }
-}  // namespace
+} // namespace
 
 VehicleHal::VehiclePropValuePtr DefaultVehicleHal::createVhalHeartBeatProp() {
     VehicleHal::VehiclePropValuePtr v = getValuePool()->obtainInt64(uptimeMillis());
@@ -73,20 +73,18 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::createVhalHeartBeatProp() {
     return v;
 }
 
-DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore* propStore, VehicleHalClient* client)
+DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHalClient *client)
     : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mVehicleClient(client) {
     initStaticConfig();
     mVehicleClient->registerPropertyValueCallback(
-            [this](const VehiclePropValue& value, bool updateStatus) {
-                onPropertyValue(value, updateStatus);
-            });
+        [this](const VehiclePropValue &value, bool updateStatus) { onPropertyValue(value, updateStatus); });
 }
 
-VehicleHal::VehiclePropValuePtr DefaultVehicleHal::getUserHalProp(
-        const VehiclePropValue& requestedPropValue, StatusCode* outStatus) {
+VehicleHal::VehiclePropValuePtr DefaultVehicleHal::getUserHalProp(const VehiclePropValue &requestedPropValue,
+                                                                  StatusCode *outStatus) {
     auto propId = requestedPropValue.prop;
     ALOGI("get(): getting value for prop %d from User HAL", propId);
-    const auto& ret = mFakeUserHal.onGetProperty(requestedPropValue);
+    const auto &ret = mFakeUserHal.onGetProperty(requestedPropValue);
     VehicleHal::VehiclePropValuePtr v = nullptr;
     if (!ret.ok()) {
         ALOGE("get(): User HAL returned error: %s", ret.error().message().c_str());
@@ -105,8 +103,8 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::getUserHalProp(
     return addTimestamp(std::move(v));
 }
 
-VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue& requestedPropValue,
-                                                       StatusCode* outStatus) {
+VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &requestedPropValue,
+                                                       StatusCode *outStatus) {
     auto propId = requestedPropValue.prop;
     ALOGV("get(%d)", propId);
 
@@ -127,6 +125,14 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue& r
         return addTimestamp(std::move(v));
     }
 
+    /* ---- */
+    if (propId == (int)VehicleProperty::HVAC_TEMPERATURE_SET) {
+        v = getValuePool()->obtainFloat(69.0f);
+        *outStatus = StatusCode::OK;
+        return addTimestamp(std::move(v));
+    }
+    /* ---- */
+
     auto internalPropValue = mPropStore->readValueOrNull(requestedPropValue);
     if (internalPropValue != nullptr) {
         v = getValuePool()->obtain(*internalPropValue);
@@ -142,11 +148,9 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue& r
     return addTimestamp(std::move(v));
 }
 
-std::vector<VehiclePropConfig> DefaultVehicleHal::listProperties() {
-    return mPropStore->getAllConfigs();
-}
+std::vector<VehiclePropConfig> DefaultVehicleHal::listProperties() { return mPropStore->getAllConfigs(); }
 
-bool DefaultVehicleHal::dump(const hidl_handle& fd, const hidl_vec<hidl_string>& options) {
+bool DefaultVehicleHal::dump(const hidl_handle &fd, const hidl_vec<hidl_string> &options) {
     int nativeFd = fd->data[0];
     if (nativeFd < 0) {
         ALOGW("Invalid fd from HIDL handle: %d", nativeFd);
@@ -180,63 +184,62 @@ bool DefaultVehicleHal::dump(const hidl_handle& fd, const hidl_vec<hidl_string>&
     return mVehicleClient->dump(fd, options);
 }
 
-StatusCode DefaultVehicleHal::checkPropValue(const VehiclePropValue& value,
-                                             const VehiclePropConfig* config) {
+StatusCode DefaultVehicleHal::checkPropValue(const VehiclePropValue &value, const VehiclePropConfig *config) {
     int32_t property = value.prop;
     VehiclePropertyType type = getPropType(property);
     switch (type) {
-        case VehiclePropertyType::BOOLEAN:
-        case VehiclePropertyType::INT32:
-            if (value.value.int32Values.size() != 1) {
-                return StatusCode::INVALID_ARG;
-            }
-            break;
-        case VehiclePropertyType::INT32_VEC:
-            if (value.value.int32Values.size() < 1) {
-                return StatusCode::INVALID_ARG;
-            }
-            break;
-        case VehiclePropertyType::INT64:
-            if (value.value.int64Values.size() != 1) {
-                return StatusCode::INVALID_ARG;
-            }
-            break;
-        case VehiclePropertyType::INT64_VEC:
-            if (value.value.int64Values.size() < 1) {
-                return StatusCode::INVALID_ARG;
-            }
-            break;
-        case VehiclePropertyType::FLOAT:
-            if (value.value.floatValues.size() != 1) {
-                return StatusCode::INVALID_ARG;
-            }
-            break;
-        case VehiclePropertyType::FLOAT_VEC:
-            if (value.value.floatValues.size() < 1) {
-                return StatusCode::INVALID_ARG;
-            }
-            break;
-        case VehiclePropertyType::BYTES:
-            // We allow setting an empty bytes array.
-            break;
-        case VehiclePropertyType::STRING:
-            // We allow setting an empty string.
-            break;
-        case VehiclePropertyType::MIXED:
-            if (getPropGroup(property) == VehiclePropertyGroup::VENDOR) {
-                // We only checks vendor mixed properties.
-                return checkVendorMixedPropValue(value, config);
-            }
-            break;
-        default:
-            ALOGW("Unknown property type: %d", type);
+    case VehiclePropertyType::BOOLEAN:
+    case VehiclePropertyType::INT32:
+        if (value.value.int32Values.size() != 1) {
             return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::INT32_VEC:
+        if (value.value.int32Values.size() < 1) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::INT64:
+        if (value.value.int64Values.size() != 1) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::INT64_VEC:
+        if (value.value.int64Values.size() < 1) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::FLOAT:
+        if (value.value.floatValues.size() != 1) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::FLOAT_VEC:
+        if (value.value.floatValues.size() < 1) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::BYTES:
+        // We allow setting an empty bytes array.
+        break;
+    case VehiclePropertyType::STRING:
+        // We allow setting an empty string.
+        break;
+    case VehiclePropertyType::MIXED:
+        if (getPropGroup(property) == VehiclePropertyGroup::VENDOR) {
+            // We only checks vendor mixed properties.
+            return checkVendorMixedPropValue(value, config);
+        }
+        break;
+    default:
+        ALOGW("Unknown property type: %d", type);
+        return StatusCode::INVALID_ARG;
     }
     return StatusCode::OK;
 }
 
-StatusCode DefaultVehicleHal::checkVendorMixedPropValue(const VehiclePropValue& value,
-                                                        const VehiclePropConfig* config) {
+StatusCode DefaultVehicleHal::checkVendorMixedPropValue(const VehiclePropValue &value,
+                                                        const VehiclePropConfig *config) {
     auto configArray = config->configArray;
     // configArray[0], 1 indicates the property has a String value, we allow the string value to
     // be empty.
@@ -285,74 +288,72 @@ StatusCode DefaultVehicleHal::checkVendorMixedPropValue(const VehiclePropValue& 
     return StatusCode::OK;
 }
 
-StatusCode DefaultVehicleHal::checkValueRange(const VehiclePropValue& value,
-                                              const VehicleAreaConfig* areaConfig) {
+StatusCode DefaultVehicleHal::checkValueRange(const VehiclePropValue &value, const VehicleAreaConfig *areaConfig) {
     if (areaConfig == nullptr) {
         return StatusCode::OK;
     }
     int32_t property = value.prop;
     VehiclePropertyType type = getPropType(property);
     switch (type) {
-        case VehiclePropertyType::INT32:
-            if (areaConfig->minInt32Value == 0 && areaConfig->maxInt32Value == 0) {
-                break;
-            }
-            // We already checked this in checkPropValue.
-            assert(value.value.int32Values.size() > 0);
-            if (value.value.int32Values[0] < areaConfig->minInt32Value ||
-                value.value.int32Values[0] > areaConfig->maxInt32Value) {
-                return StatusCode::INVALID_ARG;
-            }
+    case VehiclePropertyType::INT32:
+        if (areaConfig->minInt32Value == 0 && areaConfig->maxInt32Value == 0) {
             break;
-        case VehiclePropertyType::INT64:
-            if (areaConfig->minInt64Value == 0 && areaConfig->maxInt64Value == 0) {
-                break;
-            }
-            // We already checked this in checkPropValue.
-            assert(value.value.int64Values.size() > 0);
-            if (value.value.int64Values[0] < areaConfig->minInt64Value ||
-                value.value.int64Values[0] > areaConfig->maxInt64Value) {
-                return StatusCode::INVALID_ARG;
-            }
+        }
+        // We already checked this in checkPropValue.
+        assert(value.value.int32Values.size() > 0);
+        if (value.value.int32Values[0] < areaConfig->minInt32Value ||
+            value.value.int32Values[0] > areaConfig->maxInt32Value) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::INT64:
+        if (areaConfig->minInt64Value == 0 && areaConfig->maxInt64Value == 0) {
             break;
-        case VehiclePropertyType::FLOAT:
-            if (areaConfig->minFloatValue == 0 && areaConfig->maxFloatValue == 0) {
-                break;
-            }
-            // We already checked this in checkPropValue.
-            assert(value.value.floatValues.size() > 0);
-            if (value.value.floatValues[0] < areaConfig->minFloatValue ||
-                value.value.floatValues[0] > areaConfig->maxFloatValue) {
-                return StatusCode::INVALID_ARG;
-            }
+        }
+        // We already checked this in checkPropValue.
+        assert(value.value.int64Values.size() > 0);
+        if (value.value.int64Values[0] < areaConfig->minInt64Value ||
+            value.value.int64Values[0] > areaConfig->maxInt64Value) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    case VehiclePropertyType::FLOAT:
+        if (areaConfig->minFloatValue == 0 && areaConfig->maxFloatValue == 0) {
             break;
-        default:
-            // We don't check the rest of property types. Additional logic needs to be added if
-            // required for real implementation. E.g., you might want to enforce the range
-            // checks on vector as well or you might want to check the range for mixed property.
-            break;
+        }
+        // We already checked this in checkPropValue.
+        assert(value.value.floatValues.size() > 0);
+        if (value.value.floatValues[0] < areaConfig->minFloatValue ||
+            value.value.floatValues[0] > areaConfig->maxFloatValue) {
+            return StatusCode::INVALID_ARG;
+        }
+        break;
+    default:
+        // We don't check the rest of property types. Additional logic needs to be added if
+        // required for real implementation. E.g., you might want to enforce the range
+        // checks on vector as well or you might want to check the range for mixed property.
+        break;
     }
     return StatusCode::OK;
 }
 
-StatusCode DefaultVehicleHal::setUserHalProp(const VehiclePropValue& propValue) {
+StatusCode DefaultVehicleHal::setUserHalProp(const VehiclePropValue &propValue) {
     ALOGI("onSetProperty(): property %d will be handled by UserHal", propValue.prop);
 
-    const auto& ret = mFakeUserHal.onSetProperty(propValue);
+    const auto &ret = mFakeUserHal.onSetProperty(propValue);
     if (!ret.ok()) {
         ALOGE("onSetProperty(): HAL returned error: %s", ret.error().message().c_str());
         return StatusCode(ret.error().code());
     }
     auto updatedValue = ret.value().get();
     if (updatedValue != nullptr) {
-        ALOGI("onSetProperty(): updating property returned by HAL: %s",
-              toString(*updatedValue).c_str());
+        ALOGI("onSetProperty(): updating property returned by HAL: %s", toString(*updatedValue).c_str());
         onPropertyValue(*updatedValue, true);
     }
     return StatusCode::OK;
 }
 
-StatusCode DefaultVehicleHal::set(const VehiclePropValue& propValue) {
+StatusCode DefaultVehicleHal::set(const VehiclePropValue &propValue) {
     if (propValue.status != VehiclePropertyStatus::AVAILABLE) {
         // Android side cannot set property status - this value is the
         // purview of the HAL implementation to reflect the state of
@@ -364,17 +365,14 @@ StatusCode DefaultVehicleHal::set(const VehiclePropValue& propValue) {
         return setUserHalProp(propValue);
     }
 
-    std::unordered_set<int32_t> powerProps(std::begin(kHvacPowerProperties),
-                                           std::end(kHvacPowerProperties));
+    std::unordered_set<int32_t> powerProps(std::begin(kHvacPowerProperties), std::end(kHvacPowerProperties));
     if (powerProps.count(propValue.prop)) {
-        auto hvacPowerOn = mPropStore->readValueOrNull(
-                toInt(VehicleProperty::HVAC_POWER_ON),
-                (VehicleAreaSeat::ROW_1_LEFT | VehicleAreaSeat::ROW_1_RIGHT |
-                 VehicleAreaSeat::ROW_2_LEFT | VehicleAreaSeat::ROW_2_CENTER |
-                 VehicleAreaSeat::ROW_2_RIGHT));
+        auto hvacPowerOn = mPropStore->readValueOrNull(toInt(VehicleProperty::HVAC_POWER_ON),
+                                                       (VehicleAreaSeat::ROW_1_LEFT | VehicleAreaSeat::ROW_1_RIGHT |
+                                                        VehicleAreaSeat::ROW_2_LEFT | VehicleAreaSeat::ROW_2_CENTER |
+                                                        VehicleAreaSeat::ROW_2_RIGHT));
 
-        if (hvacPowerOn && hvacPowerOn->value.int32Values.size() == 1 &&
-            hvacPowerOn->value.int32Values[0] == 0) {
+        if (hvacPowerOn && hvacPowerOn->value.int32Values.size() == 1 && hvacPowerOn->value.int32Values[0] == 0) {
             return StatusCode::NOT_AVAILABLE;
         }
     }
@@ -389,17 +387,16 @@ StatusCode DefaultVehicleHal::set(const VehiclePropValue& propValue) {
     }
 
     int32_t property = propValue.prop;
-    const VehiclePropConfig* config = mPropStore->getConfigOrNull(property);
+    const VehiclePropConfig *config = mPropStore->getConfigOrNull(property);
     if (config == nullptr) {
         ALOGW("no config for prop 0x%x", property);
         return StatusCode::INVALID_ARG;
     }
-    const VehicleAreaConfig* areaConfig = getAreaConfig(propValue, config);
+    const VehicleAreaConfig *areaConfig = getAreaConfig(propValue, config);
     if (!isGlobalProp(property) && areaConfig == nullptr) {
         // Ignore areaId for global property. For non global property, check whether areaId is
         // allowed. areaId must appear in areaConfig.
-        ALOGW("invalid area ID: 0x%x for prop 0x%x, not listed in config", propValue.areaId,
-              property);
+        ALOGW("invalid area ID: 0x%x for prop 0x%x, not listed in config", propValue.areaId, property);
         return StatusCode::INVALID_ARG;
     }
     auto status = checkPropValue(propValue, config);
@@ -427,7 +424,7 @@ StatusCode DefaultVehicleHal::set(const VehiclePropValue& propValue) {
 void DefaultVehicleHal::onCreate() {
     auto configs = mVehicleClient->getAllPropertyConfig();
 
-    for (const auto& cfg : configs) {
+    for (const auto &cfg : configs) {
         if (isDiagnosticProperty(cfg)) {
             // do not write an initial empty value for the diagnostic properties
             // as we will initialize those separately.
@@ -441,9 +438,9 @@ void DefaultVehicleHal::onCreate() {
 
             // Create a separate instance for each individual zone
             VehiclePropValue prop = {
-                    .areaId = curArea,
-                    .prop = cfg.prop,
-                    .status = VehiclePropertyStatus::UNAVAILABLE,
+                .areaId = curArea,
+                .prop = cfg.prop,
+                .status = VehiclePropertyStatus::UNAVAILABLE,
             };
             // Allow the initial values to set status.
             mPropStore->writeValue(prop, /*updateStatus=*/true);
@@ -463,8 +460,7 @@ DefaultVehicleHal::~DefaultVehicleHal() {
 }
 
 void DefaultVehicleHal::registerHeartBeatEvent() {
-    mRecurrentTimer.registerRecurrentEvent(kHeartBeatIntervalNs,
-                                           static_cast<int32_t>(VehicleProperty::VHAL_HEARTBEAT));
+    mRecurrentTimer.registerRecurrentEvent(kHeartBeatIntervalNs, static_cast<int32_t>(VehicleProperty::VHAL_HEARTBEAT));
 }
 
 VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
@@ -473,7 +469,7 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
     // This is an example of very simple health checking. VHAL is considered healthy if we can read
     // PERF_VEHICLE_SPEED. The more comprehensive health checking is required.
     VehiclePropValue propValue = {
-            .prop = static_cast<int32_t>(VehicleProperty::PERF_VEHICLE_SPEED),
+        .prop = static_cast<int32_t>(VehicleProperty::PERF_VEHICLE_SPEED),
     };
     auto internalPropValue = mPropStore->readValueOrNull(propValue);
     if (internalPropValue != nullptr) {
@@ -484,8 +480,8 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
     return v;
 }
 
-void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t>& properties) {
-    auto& pool = *getValuePool();
+void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
+    auto &pool = *getValuePool();
 
     for (int32_t property : properties) {
         VehiclePropValuePtr v;
@@ -511,9 +507,7 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t>& pr
 }
 
 RecurrentTimer::Action DefaultVehicleHal::getTimerAction() {
-    return [this](const std::vector<int32_t>& properties) {
-        onContinuousPropertyTimer(properties);
-    };
+    return [this](const std::vector<int32_t> &properties) { onContinuousPropertyTimer(properties); };
 }
 
 StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
@@ -524,7 +518,7 @@ StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
     }
 
     // If the config does not exist, isContinuousProperty should return false.
-    const VehiclePropConfig* config = mPropStore->getConfigOrNull(property);
+    const VehiclePropConfig *config = mPropStore->getConfigOrNull(property);
     if (sampleRate < config->minSampleRate || sampleRate > config->maxSampleRate) {
         ALOGW("sampleRate out of range");
         return StatusCode::INVALID_ARG;
@@ -545,7 +539,7 @@ StatusCode DefaultVehicleHal::unsubscribe(int32_t property) {
 }
 
 bool DefaultVehicleHal::isContinuousProperty(int32_t propId) const {
-    const VehiclePropConfig* config = mPropStore->getConfigOrNull(propId);
+    const VehiclePropConfig *config = mPropStore->getConfigOrNull(propId);
     if (config == nullptr) {
         ALOGW("Config not found for property: 0x%x", propId);
         return false;
@@ -553,7 +547,7 @@ bool DefaultVehicleHal::isContinuousProperty(int32_t propId) const {
     return config->changeMode == VehiclePropertyChangeMode::CONTINUOUS;
 }
 
-void DefaultVehicleHal::onPropertyValue(const VehiclePropValue& value, bool updateStatus) {
+void DefaultVehicleHal::onPropertyValue(const VehiclePropValue &value, bool updateStatus) {
     VehiclePropValuePtr updatedPropValue = getValuePool()->obtain(value);
 
     if (mPropStore->writeValue(*updatedPropValue, updateStatus)) {
@@ -563,29 +557,27 @@ void DefaultVehicleHal::onPropertyValue(const VehiclePropValue& value, bool upda
 
 void DefaultVehicleHal::initStaticConfig() {
     auto configs = mVehicleClient->getAllPropertyConfig();
-    for (auto&& cfg : configs) {
+    for (auto &&cfg : configs) {
         VehiclePropertyStore::TokenFunction tokenFunction = nullptr;
 
         switch (cfg.prop) {
-            case OBD2_FREEZE_FRAME: {
-                // We use timestamp as token for OBD2_FREEZE_FRAME
-                tokenFunction = [](const VehiclePropValue& propValue) {
-                    return propValue.timestamp;
-                };
-                break;
-            }
-            default:
-                break;
+        case OBD2_FREEZE_FRAME: {
+            // We use timestamp as token for OBD2_FREEZE_FRAME
+            tokenFunction = [](const VehiclePropValue &propValue) { return propValue.timestamp; };
+            break;
+        }
+        default:
+            break;
         }
 
         mPropStore->registerProperty(cfg, tokenFunction);
     }
 }
 
-}  // namespace impl
+} // namespace impl
 
-}  // namespace V2_0
-}  // namespace vehicle
-}  // namespace automotive
-}  // namespace hardware
-}  // namespace android
+} // namespace V2_0
+} // namespace vehicle
+} // namespace automotive
+} // namespace hardware
+} // namespace android

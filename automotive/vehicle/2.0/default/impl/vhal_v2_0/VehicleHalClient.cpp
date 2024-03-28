@@ -26,7 +26,7 @@ namespace V2_0 {
 
 namespace impl {
 
-void VehicleHalClient::onPropertyValue(const VehiclePropValue& value, bool updateStatus) {
+void VehicleHalClient::onPropertyValue(const VehiclePropValue &value, bool updateStatus) {
     if (!mPropCallback) {
         LOG(ERROR) << __func__ << ": PropertyCallBackType is not registered!";
         return;
@@ -34,7 +34,7 @@ void VehicleHalClient::onPropertyValue(const VehiclePropValue& value, bool updat
     return mPropCallback(value, updateStatus);
 }
 
-void VehicleHalClient::registerPropertyValueCallback(PropertyCallBackType&& callback) {
+void VehicleHalClient::registerPropertyValueCallback(PropertyCallBackType &&callback) {
     if (mPropCallback) {
         LOG(ERROR) << __func__ << ": Cannot register multiple callbacks!";
         return;
@@ -42,10 +42,10 @@ void VehicleHalClient::registerPropertyValueCallback(PropertyCallBackType&& call
     mPropCallback = std::move(callback);
 }
 
-}  // namespace impl
+} // namespace impl
 
-}  // namespace V2_0
-}  // namespace vehicle
-}  // namespace automotive
-}  // namespace hardware
-}  // namespace android
+} // namespace V2_0
+} // namespace vehicle
+} // namespace automotive
+} // namespace hardware
+} // namespace android
