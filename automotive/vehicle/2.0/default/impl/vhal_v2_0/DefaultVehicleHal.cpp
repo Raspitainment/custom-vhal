@@ -25,6 +25,10 @@
 #include <vhal_v2_0/RecurrentTimer.h>
 #include <vhal_v2_0/VehicleUtils.h>
 
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "FakeObd2Frame.h"
 #include "PropertyUtils.h"
 #include "VehicleUtils.h"
@@ -79,6 +83,40 @@ DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHal
     initStaticConfig();
     mVehicleClient->registerPropertyValueCallback(
         [this](const VehiclePropValue &value, bool updateStatus) { onPropertyValue(value, updateStatus); });
+
+    FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
+    if (exportDevice == NULL) {
+        ALOGE("Failed to open /sys/class/gpio/export");
+        return;
+    }
+
+    if (fprintf(exportDevice, "26") < 0) {
+        ALOGE("Failed to export GPIO");
+        fclose(exportDevice);
+        return;
+    }
+
+    fclose(exportDevice);
+
+    FILE *directionDevice = fopen("/sys/class/gpio/gpio26/direction", "w");
+    if (directionDevice == NULL) {
+        ALOGE("Failed to open /sys/class/gpio/gpio26/direction");
+        return;
+    }
+
+    if (fprintf(directionDevice, "in") < 0) {
+        ALOGE("Failed to set direction of GPIO");
+        fclose(directionDevice);
+        return;
+    }
+
+    fclose(directionDevice);
+
+    mGpioDevice = fopen("/sys/class/gpio/gpio26/value", "r");
+    if (mGpioDevice == NULL) {
+        ALOGE("Failed to open /sys/class/gpio/gpio26/value");
+        return;
+    }
 }
 
 VehicleHal::VehiclePropValuePtr DefaultVehicleHal::getUserHalProp(const VehiclePropValue &requestedPropValue,
@@ -128,7 +166,25 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
 
     /* ---- */
     if (propId == (int)VehicleProperty::HVAC_TEMPERATURE_SET) {
-        v = getValuePool()->obtainFloat(69.0f);
+        ALOGI("get(): returning HVAC_TEMPERATURE_SET 69.0 value");
+
+        // read the value from mGpioDevice
+        char value = '0';
+        if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
+            ALOGE("Failed to seek GPIO");
+            *outStatus = StatusCode::INTERNAL_ERROR;
+            return nullptr;
+        }
+
+        if (fread(&value, 1, 1, mGpioDevice) != 1) {
+            ALOGE("Failed to read GPIO");
+            *outStatus = StatusCode::INTERNAL_ERROR;
+            return nullptr;
+        }
+
+        ALOGI("GPIO value: %c", value);
+
+        v = getValuePool()->obtainFloat(value == '1' ? 20.0f : 25.0f);
         *outStatus = StatusCode::OK;
         return addTimestamp(std::move(v));
     }
