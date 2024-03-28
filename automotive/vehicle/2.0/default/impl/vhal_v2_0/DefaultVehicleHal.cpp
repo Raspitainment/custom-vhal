@@ -15,14 +15,15 @@
  */
 #define LOG_TAG "DefaultVehicleHal_v2_0"
 
-#include <aidl/android/hardware/automotive/vehicle/VehicleProperty.h>
 #include <android-base/chrono_utils.h>
+#include <android/hardware/automotive/vehicle/2.0/types.h>
 #include <assert.h>
 #include <stdio.h>
 #include <unordered_set>
 #include <utils/Log.h>
 #include <utils/SystemClock.h>
 #include <vhal_v2_0/RecurrentTimer.h>
+#include <vhal_v2_0/VehicleUtils.h>
 
 #include "FakeObd2Frame.h"
 #include "PropertyUtils.h"
