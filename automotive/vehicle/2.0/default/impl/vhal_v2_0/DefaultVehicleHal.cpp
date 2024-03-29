@@ -182,7 +182,7 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
 
         ALOGI("GPIO value: %c", value);
 
-        v = getValuePool()->obtainFloat(value == '1' ? 20.0f : 25.0f);
+        v = getValuePool()->obtainFloat(value == '1' ? 20.0f : 30.0f);
         ALOGI("get(): returning HVAC_TEMPERATURE_SET value: %f", v->value.floatValues[0]);
         *outStatus = StatusCode::OK;
         return addTimestamp(std::move(v));
@@ -560,7 +560,7 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
 
             ALOGI("GPIO value: %c", value);
 
-            v = pool.obtainFloat(value == '1' ? 20.0f : 25.0f);
+            v = pool.obtainFloat(value == '1' ? 20.0f : 30.0f);
             ALOGI("get(): returning HVAC_TEMPERATURE_SET value: %f", v->value.floatValues[0]);
         } else if (isContinuousProperty(property)) {
             auto internalPropValue = mPropStore->readValueOrNull(property);
@@ -599,6 +599,10 @@ StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
     if (sampleRate < config->minSampleRate || sampleRate > config->maxSampleRate) {
         ALOGW("sampleRate out of range");
         return StatusCode::INVALID_ARG;
+    }
+
+    if (sampleRate == 0.0f) {
+        sampleRate = 10.0f; // default to 10Hz
     }
 
     mRecurrentTimer.registerRecurrentEvent(hertzToNanoseconds(sampleRate), property);
