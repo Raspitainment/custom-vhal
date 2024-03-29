@@ -165,7 +165,7 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
     }
 
     /* ---- */
-    if (propId == (int)VehicleProperty::HVAC_TEMPERATURE_SET) {
+    if (propId == (int)VehicleProperty::HVAC_TEMPERATURE_CURRENT) {
         // read the value from mGpioDevice
         char value = '0';
         if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
@@ -183,7 +183,7 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
         ALOGI("GPIO value: %c", value);
 
         v = getValuePool()->obtainFloat(value == '1' ? 20.0f : 30.0f);
-        ALOGI("get(): returning HVAC_TEMPERATURE_SET value: %f", v->value.floatValues[0]);
+        ALOGI("get(): returning HVAC_TEMPERATURE_CURRENT value: %f", v->value.floatValues[0]);
         *outStatus = StatusCode::OK;
         return addTimestamp(std::move(v));
     }
@@ -547,9 +547,11 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
     for (int32_t property : properties) {
         VehiclePropValuePtr v;
 
+        ALOGI("onContinuousPropertyTimer(): property: 0x%x", property);
+
         /* ---- */
-        if (property == (int)VehicleProperty::HVAC_TEMPERATURE_SET) {
-            ALOGI("onContinuousPropertyTimer(): getting HVAC_TEMPERATURE_SET value");
+        if (property == static_cast<int32_t>(VehicleProperty::HVAC_TEMPERATURE_CURRENT)) {
+            ALOGI("onContinuousPropertyTimer(): getting HVAC_TEMPERATURE_CURRENT value");
 
             // read the value from mGpioDevice
             char value = '0';
@@ -566,7 +568,7 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
             ALOGI("GPIO value: %c", value);
 
             v = pool.obtainFloat(value == '1' ? 20.0f : 30.0f);
-            ALOGI("get(): returning HVAC_TEMPERATURE_SET value: %f", v->value.floatValues[0]);
+            ALOGI("get(): returning HVAC_TEMPERATURE_CURRENT value: %f", v->value.floatValues[0]);
         } else if (isContinuousProperty(property)) {
             auto internalPropValue = mPropStore->readValueOrNull(property);
             if (internalPropValue != nullptr) {
