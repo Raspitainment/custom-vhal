@@ -410,6 +410,9 @@ StatusCode DefaultVehicleHal::setUserHalProp(const VehiclePropValue &propValue) 
 }
 
 StatusCode DefaultVehicleHal::set(const VehiclePropValue &propValue) {
+    ALOGI("set(): propId: 0x%x, areaId: 0x%x, status: %d, value: %s", propValue.prop, propValue.areaId,
+          static_cast<int>(propValue.status), toString(propValue).c_str());
+
     if (propValue.status != VehiclePropertyStatus::AVAILABLE) {
         // Android side cannot set property status - this value is the
         // purview of the HAL implementation to reflect the state of
@@ -537,6 +540,8 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
 }
 
 void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
+    ALOGI("onContinuousPropertyTimer(): properties size: %zu", properties.size());
+
     auto &pool = *getValuePool();
 
     for (int32_t property : properties) {
@@ -598,7 +603,7 @@ StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
     const VehiclePropConfig *config = mPropStore->getConfigOrNull(property);
     if (sampleRate < config->minSampleRate || sampleRate > config->maxSampleRate) {
         ALOGW("sampleRate out of range");
-        return StatusCode::INVALID_ARG;
+        // return StatusCode::INVALID_ARG;
     }
 
     if (sampleRate == 0.0f) {
@@ -630,6 +635,9 @@ bool DefaultVehicleHal::isContinuousProperty(int32_t propId) const {
 }
 
 void DefaultVehicleHal::onPropertyValue(const VehiclePropValue &value, bool updateStatus) {
+    ALOGI("onPropertyValue(): propId: 0x%x, areaId: 0x%x, status: %d, value: %s", value.prop, value.areaId,
+          static_cast<int>(value.status), toString(value).c_str());
+
     VehiclePropValuePtr updatedPropValue = getValuePool()->obtain(value);
 
     if (mPropStore->writeValue(*updatedPropValue, updateStatus)) {
