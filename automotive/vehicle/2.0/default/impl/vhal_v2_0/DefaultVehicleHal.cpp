@@ -550,14 +550,12 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
             char value = '0';
             if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
                 ALOGE("Failed to seek GPIO");
-                *outStatus = StatusCode::INTERNAL_ERROR;
-                return nullptr;
+                v = pool.obtainFloat(0.0f);
             }
 
             if (fread(&value, 1, 1, mGpioDevice) != 1) {
                 ALOGE("Failed to read GPIO");
-                *outStatus = StatusCode::INTERNAL_ERROR;
-                return nullptr;
+                v = pool.obtainFloat(0.0f);
             }
 
             ALOGI("GPIO value: %c", value);
