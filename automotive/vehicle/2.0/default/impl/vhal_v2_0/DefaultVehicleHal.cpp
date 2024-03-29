@@ -602,6 +602,7 @@ StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
     }
 
     if (sampleRate == 0.0f) {
+        ALOGI("Subscribe with 0Hz sample rate, default to 10Hz");
         sampleRate = 10.0f; // default to 10Hz
     }
 
