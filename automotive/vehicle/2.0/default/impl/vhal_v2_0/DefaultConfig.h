@@ -546,7 +546,17 @@ const ConfigDeclaration kVehicleProperties[]{
              .maxSampleRate = 10.0f,
          },
      .initialAreaValues = {{HVAC_LEFT, {.floatValues = {16}}}, {HVAC_RIGHT, {.floatValues = {20}}}}},
-
+    {
+        .config =
+            {
+                .prop = toInt(VehicleProperty::HVAC_TEMPERATURE_CURRENT),
+                .access = VehiclePropertyAccess::READ,
+                .changeMode = VehiclePropertyChangeMode::CONTINUOUS,
+                .minSampleRate = 1.0f,
+                .maxSampleRate = 10.0f,
+            },
+        .initialValue = {.floatValues = {69.0f}},
+    },
     {.config =
          {
              .prop = toInt(VehicleProperty::HVAC_TEMPERATURE_VALUE_SUGGESTION),

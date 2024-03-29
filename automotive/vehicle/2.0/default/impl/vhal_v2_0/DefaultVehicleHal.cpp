@@ -598,6 +598,7 @@ StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
     ALOGI("%s propId: 0x%x, sampleRate: %f", __func__, property, sampleRate);
 
     if (!isContinuousProperty(property)) {
+        ALOGW("Subscribe to non-continuous property is not supported");
         return StatusCode::INVALID_ARG;
     }
 
@@ -605,7 +606,7 @@ StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
     const VehiclePropConfig *config = mPropStore->getConfigOrNull(property);
     if (sampleRate < config->minSampleRate || sampleRate > config->maxSampleRate) {
         ALOGW("sampleRate out of range");
-        // return StatusCode::INVALID_ARG;
+        return StatusCode::INVALID_ARG;
     }
 
     if (sampleRate == 0.0f) {
