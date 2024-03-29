@@ -166,8 +166,6 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
 
     /* ---- */
     if (propId == (int)VehicleProperty::HVAC_TEMPERATURE_SET) {
-        ALOGI("get(): returning HVAC_TEMPERATURE_SET 69.0 value");
-
         // read the value from mGpioDevice
         char value = '0';
         if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
@@ -185,6 +183,7 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
         ALOGI("GPIO value: %c", value);
 
         v = getValuePool()->obtainFloat(value == '1' ? 20.0f : 25.0f);
+        ALOGI("get(): returning HVAC_TEMPERATURE_SET value: %f", v->value.floatValues[0]);
         *outStatus = StatusCode::OK;
         return addTimestamp(std::move(v));
     }
@@ -542,7 +541,30 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
 
     for (int32_t property : properties) {
         VehiclePropValuePtr v;
-        if (isContinuousProperty(property)) {
+
+        /* ---- */
+        if (property == (int)VehicleProperty::HVAC_TEMPERATURE_SET) {
+            ALOGI("onContinuousPropertyTimer(): getting HVAC_TEMPERATURE_SET value");
+
+            // read the value from mGpioDevice
+            char value = '0';
+            if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
+                ALOGE("Failed to seek GPIO");
+                *outStatus = StatusCode::INTERNAL_ERROR;
+                return nullptr;
+            }
+
+            if (fread(&value, 1, 1, mGpioDevice) != 1) {
+                ALOGE("Failed to read GPIO");
+                *outStatus = StatusCode::INTERNAL_ERROR;
+                return nullptr;
+            }
+
+            ALOGI("GPIO value: %c", value);
+
+            v = pool.obtainFloat(value == '1' ? 20.0f : 25.0f);
+            ALOGI("get(): returning HVAC_TEMPERATURE_SET value: %f", v->value.floatValues[0]);
+        } else if (isContinuousProperty(property)) {
             auto internalPropValue = mPropStore->readValueOrNull(property);
             if (internalPropValue != nullptr) {
                 v = pool.obtain(*internalPropValue);
