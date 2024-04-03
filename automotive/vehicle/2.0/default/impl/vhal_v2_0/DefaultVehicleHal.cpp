@@ -556,7 +556,7 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
         *v->areaId = VehicleAreaSeat::ROW_1_LEFT;
         *v->timestamp = elapsedRealtimeNano();
         *v->value->int32Values[0] = gpioValue[0] == '0' ? 1 : 2;
-        mVehicleClient->setProperty(propValue, false);
+        mVehicleClient->setProperty(*v, /*updateStatus=*/false);
     }
 
     for (int32_t property : properties) {
