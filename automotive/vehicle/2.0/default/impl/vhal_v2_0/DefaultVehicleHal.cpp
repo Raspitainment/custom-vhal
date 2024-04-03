@@ -553,7 +553,7 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
             ALOGI("Setting GPIO Value: %c", gpioValue[0]);
 
             VehiclePropValuePtr v = pool.obtain(VehiclePropertyType::INT32);
-            v->prop = VehicleProperty::HVAC_FAN_SPEED;
+            v->prop = static_cast<int32_t>(VehicleProperty::HVAC_FAN_SPEED);
             v->areaId = VehicleAreaSeat::ROW_1_LEFT;
             v->timestamp = elapsedRealtimeNano();
             v->value->int32Values[0] = gpioValue[0] == '0' ? 1 : 2;
