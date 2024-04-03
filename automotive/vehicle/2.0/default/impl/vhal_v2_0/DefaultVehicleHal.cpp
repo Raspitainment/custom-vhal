@@ -544,6 +544,21 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
 
     auto &pool = *getValuePool();
 
+    // GPIO Value
+    {
+        char gpioValue[1] = {0};
+        if (fread(gpioValue, 1, 1, mGpioDevice) != 1) {
+            ALOGE("Failed to read GPIO");
+        }
+
+        auto v = pool.obtain(VehiclePropertyType::INT32);
+        *v->propId = VehicleProperty::HVAC_FAN_SPEED;
+        *v->areaId = VehicleAreaSeat::ROW_1_LEFT;
+        *v->timestamp = elapsedRealtimeNano();
+        *v->value->int32Values[0] = gpioValue[0] == '0' ? 1 : 2;
+        mVehicleClient->setProperty(propValue, false);
+    }
+
     for (int32_t property : properties) {
         VehiclePropValuePtr v;
 
