@@ -554,9 +554,9 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
 
             VehiclePropValuePtr v = pool.obtain(VehiclePropertyType::INT32);
             v->prop = static_cast<int32_t>(VehicleProperty::HVAC_FAN_SPEED);
-            v->areaId = VehicleAreaSeat::ROW_1_LEFT;
+            v->areaId = 0;
             v->timestamp = elapsedRealtimeNano();
-            v->value->int32Values[0] = gpioValue[0] == '0' ? 1 : 2;
+            v->value.int32Values[0] = gpioValue[0] == '0' ? 1 : 2;
             mVehicleClient->setProperty(*v, /*updateStatus=*/false);
         }
     }
