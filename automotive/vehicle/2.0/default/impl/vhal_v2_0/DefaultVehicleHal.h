@@ -97,6 +97,7 @@ class DefaultVehicleHal : public VehicleHal {
     FILE *mGpioDevice = nullptr;
 
     bool readGPIO();
+};
 
 } // namespace impl
 
