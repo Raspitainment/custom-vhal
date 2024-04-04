@@ -83,40 +83,6 @@ DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHal
     initStaticConfig();
     mVehicleClient->registerPropertyValueCallback(
         [this](const VehiclePropValue &value, bool updateStatus) { onPropertyValue(value, updateStatus); });
-
-    FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
-    if (exportDevice == NULL) {
-        ALOGE("Failed to open /sys/class/gpio/export");
-        return;
-    }
-
-    if (fprintf(exportDevice, "26") < 0) {
-        ALOGE("Failed to export GPIO");
-        fclose(exportDevice);
-        return;
-    }
-
-    fclose(exportDevice);
-
-    FILE *directionDevice = fopen("/sys/class/gpio/gpio26/direction", "w");
-    if (directionDevice == NULL) {
-        ALOGE("Failed to open /sys/class/gpio/gpio26/direction");
-        return;
-    }
-
-    if (fprintf(directionDevice, "in") < 0) {
-        ALOGE("Failed to set direction of GPIO");
-        fclose(directionDevice);
-        return;
-    }
-
-    fclose(directionDevice);
-
-    mGpioDevice = fopen("/sys/class/gpio/gpio26/value", "r");
-    if (mGpioDevice == NULL) {
-        ALOGE("Failed to open /sys/class/gpio/gpio26/value");
-        return;
-    }
 }
 
 VehicleHal::VehiclePropValuePtr DefaultVehicleHal::getUserHalProp(const VehiclePropValue &requestedPropValue,
@@ -165,30 +131,6 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
     }
 
     /* ---- */
-    if (propId == (int)VehicleProperty::HVAC_TEMPERATURE_CURRENT) {
-        // read the value from mGpioDevice
-        char value = '0';
-        if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
-            ALOGE("Failed to seek GPIO");
-            *outStatus = StatusCode::INTERNAL_ERROR;
-            return nullptr;
-        }
-
-        if (fread(&value, 1, 1, mGpioDevice) != 1) {
-            ALOGE("Failed to read GPIO");
-            *outStatus = StatusCode::INTERNAL_ERROR;
-            return nullptr;
-        }
-
-        ALOGI("GPIO value: %c", value);
-
-        v = getValuePool()->obtainFloat(value == '1' ? 20.0f : 30.0f);
-        ALOGI("get(): returning HVAC_TEMPERATURE_CURRENT value: %f", v->value.floatValues[0]);
-        *outStatus = StatusCode::OK;
-        return addTimestamp(std::move(v));
-    }
-    /* ---- */
-
     auto internalPropValue = mPropStore->readValueOrNull(requestedPropValue);
     if (internalPropValue != nullptr) {
         v = getValuePool()->obtain(*internalPropValue);
@@ -539,6 +481,57 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
     return v;
 }
 
+bool DefaultVehicleHal::readGPIO() {
+    if (mGpioDevice == NULL) {
+        FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
+        if (exportDevice == NULL) {
+            ALOGE("Failed to open /sys/class/gpio/export");
+            return false;
+        }
+
+        if (fprintf(exportDevice, "26") < 0) {
+            ALOGE("Failed to export GPIO");
+            fclose(exportDevice);
+            return false;
+        }
+
+        fclose(exportDevice);
+
+        FILE *directionDevice = fopen("/sys/class/gpio/gpio26/direction", "w");
+        if (directionDevice == NULL) {
+            ALOGE("Failed to open /sys/class/gpio/gpio26/direction");
+            return false;
+        }
+
+        if (fprintf(directionDevice, "in") < 0) {
+            ALOGE("Failed to set direction of GPIO");
+            fclose(directionDevice);
+            return false;
+        }
+
+        fclose(directionDevice);
+        mGpioDevice = fopen("/sys/class/gpio/gpio26/value", "r");
+        if (mGpioDevice == NULL) {
+            ALOGE("Failed to open /sys/class/gpio/gpio26/value");
+            return false;
+        }
+    }
+
+    char gpioValue[1] = {0};
+    if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
+        ALOGE("Failed to seek GPIO");
+        return false;
+    }
+
+    if (fread(gpioValue, 1, 1, mGpioDevice) != 1) {
+        ALOGE("Failed to read GPIO");
+        return false;
+    }
+
+    ALOGI("GPIO value: %c", gpioValue[0]);
+    return true;
+}
+
 void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
     ALOGI("onContinuousPropertyTimer(): properties size: %zu", properties.size());
 
@@ -546,19 +539,15 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
 
     // GPIO Value
     {
-        char gpioValue[1] = {0};
-        if (fread(gpioValue, 1, 1, mGpioDevice) != 1) {
-            ALOGE("Failed to read GPIO");
-        } else {
-            ALOGI("Setting GPIO Value: %c", gpioValue[0]);
+        bool gpioValue = readGPIO();
+        ALOGI("Setting GPIO Value: %d", gpioValue);
 
-            VehiclePropValuePtr v = pool.obtain(VehiclePropertyType::INT32);
-            v->prop = static_cast<int32_t>(VehicleProperty::HVAC_FAN_SPEED);
-            v->areaId = 0;
-            v->timestamp = elapsedRealtimeNano();
-            v->value.int32Values[0] = gpioValue[0] == '0' ? 1 : 2;
-            mVehicleClient->setProperty(*v, /*updateStatus=*/false);
-        }
+        VehiclePropValuePtr v = pool.obtain(VehiclePropertyType::INT32);
+        v->prop = static_cast<int32_t>(VehicleProperty::HVAC_FAN_SPEED);
+        v->areaId = 0;
+        v->timestamp = elapsedRealtimeNano();
+        v->value.int32Values[0] = gpioValue ? 1 : 2;
+        mVehicleClient->setProperty(*v, /*updateStatus=*/false);
     }
 
     for (int32_t property : properties) {
@@ -567,26 +556,7 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
         ALOGI("onContinuousPropertyTimer(): property: 0x%x", property);
 
         /* ---- */
-        if (property == static_cast<int32_t>(VehicleProperty::HVAC_TEMPERATURE_CURRENT)) {
-            ALOGI("onContinuousPropertyTimer(): getting HVAC_TEMPERATURE_CURRENT value");
-
-            // read the value from mGpioDevice
-            char value = '0';
-            if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
-                ALOGE("Failed to seek GPIO");
-                v = pool.obtainFloat(0.0f);
-            }
-
-            if (fread(&value, 1, 1, mGpioDevice) != 1) {
-                ALOGE("Failed to read GPIO");
-                v = pool.obtainFloat(0.0f);
-            }
-
-            ALOGI("GPIO value: %c", value);
-
-            v = pool.obtainFloat(value == '1' ? 20.0f : 30.0f);
-            ALOGI("get(): returning HVAC_TEMPERATURE_CURRENT value: %f", v->value.floatValues[0]);
-        } else if (isContinuousProperty(property)) {
+        if (isContinuousProperty(property)) {
             auto internalPropValue = mPropStore->readValueOrNull(property);
             if (internalPropValue != nullptr) {
                 v = pool.obtain(*internalPropValue);
