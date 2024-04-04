@@ -517,19 +517,19 @@ bool DefaultVehicleHal::readGPIO() {
         }
     }
 
-    char gpioValue[1] = {0};
     if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
         ALOGE("Failed to seek GPIO");
         return false;
     }
 
+    char gpioValue[1] = {0};
     if (fread(gpioValue, 1, 1, mGpioDevice) != 1) {
         ALOGE("Failed to read GPIO");
         return false;
     }
 
     ALOGI("GPIO value: %c", gpioValue[0]);
-    return true;
+    return gpioValue[0] == '1';
 }
 
 void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
