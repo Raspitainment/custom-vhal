@@ -95,7 +95,8 @@ class DefaultVehicleHal : public VehicleHal {
 
     // Raspitainment GPIO pin
     FILE *mGpioDevice = nullptr;
-};
+
+    bool DefaultVehicleHal::readGPIO();
 
 } // namespace impl
 
