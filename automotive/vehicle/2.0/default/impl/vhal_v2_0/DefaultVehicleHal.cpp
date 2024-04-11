@@ -79,10 +79,10 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::createVhalHeartBeatProp() {
 }
 
 DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHalClient *client)
-    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mVehicleClient(client) {
-    initStaticConfig();
-    mVehicleClient->registerPropertyValueCallback(
-        [this](const VehiclePropValue &value, bool updateStatus) { onPropertyValue(value, updateStatus); });
+    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mVehicleClient(client), mGPIO(), initStaticConfig();
+mVehicleClient->registerPropertyValueCallback([this](const VehiclePropValue &value, bool updateStatus) {
+    onPropertyValue(value, updateStatus);
+});
 }
 
 VehicleHal::VehiclePropValuePtr DefaultVehicleHal::getUserHalProp(const VehiclePropValue &requestedPropValue,
@@ -134,6 +134,10 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
     auto internalPropValue = mPropStore->readValueOrNull(requestedPropValue);
     if (internalPropValue != nullptr) {
         v = getValuePool()->obtain(*internalPropValue);
+    }
+
+    if (mGPIO.isHandled(propId)) {
+        v = mGPIO.get(propId, getValuePool());
     }
 
     if (!v) {
@@ -481,74 +485,12 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
     return v;
 }
 
-bool DefaultVehicleHal::readGPIO() {
-    if (mGpioDevice == NULL) {
-        FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
-        if (exportDevice == NULL) {
-            ALOGE("Failed to open /sys/class/gpio/export");
-            return false;
-        }
-
-        if (fprintf(exportDevice, "26") < 0) {
-            ALOGE("Failed to export GPIO");
-            fclose(exportDevice);
-            return false;
-        }
-
-        fclose(exportDevice);
-
-        FILE *directionDevice = fopen("/sys/class/gpio/gpio26/direction", "w");
-        if (directionDevice == NULL) {
-            ALOGE("Failed to open /sys/class/gpio/gpio26/direction");
-            return false;
-        }
-
-        if (fprintf(directionDevice, "in") < 0) {
-            ALOGE("Failed to set direction of GPIO");
-            fclose(directionDevice);
-            return false;
-        }
-
-        fclose(directionDevice);
-        mGpioDevice = fopen("/sys/class/gpio/gpio26/value", "r");
-        if (mGpioDevice == NULL) {
-            ALOGE("Failed to open /sys/class/gpio/gpio26/value");
-            return false;
-        }
-    }
-
-    if (fseek(mGpioDevice, 0, SEEK_SET) != 0) {
-        ALOGE("Failed to seek GPIO");
-        return false;
-    }
-
-    char gpioValue[1] = {0};
-    if (fread(gpioValue, 1, 1, mGpioDevice) != 1) {
-        ALOGE("Failed to read GPIO");
-        return false;
-    }
-
-    ALOGI("GPIO value: %c", gpioValue[0]);
-    return gpioValue[0] == '1';
-}
+void DefaultVehicleHal::onGPIOPropertyTimer() { mGPIO.writeAll(getValuePool(), mVehicleClient); }
 
 void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
     ALOGI("onContinuousPropertyTimer(): properties size: %zu", properties.size());
 
     auto &pool = *getValuePool();
-
-    // GPIO Value
-    {
-        bool gpioValue = readGPIO();
-        ALOGI("Setting GPIO Value: %d", gpioValue);
-
-        VehiclePropValuePtr v = pool.obtain(VehiclePropertyType::INT32);
-        v->prop = static_cast<int32_t>(VehicleProperty::NIGHT_MODE);
-        v->areaId = 0x0;
-        v->timestamp = elapsedRealtimeNano();
-        v->value.int32Values[0] = gpioValue ? 0 : 1;
-        mVehicleClient->setProperty(*v, /*updateStatus=*/false);
-    }
 
     for (int32_t property : properties) {
         VehiclePropValuePtr v;
@@ -579,6 +521,10 @@ void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &pr
 
 RecurrentTimer::Action DefaultVehicleHal::getTimerAction() {
     return [this](const std::vector<int32_t> &properties) { onContinuousPropertyTimer(properties); };
+}
+
+RecurrentTimer::Action DefaultVehicleHal::getGPIOTimerAction() {
+    return [this](const std::vector<int32_t> &properties) { onGPIOPropertyTimer(); };
 }
 
 StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
