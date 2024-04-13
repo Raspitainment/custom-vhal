@@ -1,6 +1,3 @@
-
-#define LOG_TAG "DefaultVehicleHal_v2_0_GPIO"
-
 #include <android-base/chrono_utils.h>
 #include <android/hardware/automotive/vehicle/2.0/types.h>
 #include <assert.h>
@@ -8,8 +5,17 @@
 #include <unordered_set>
 #include <utils/Log.h>
 #include <utils/SystemClock.h>
+#include <vhal_v2_0/GPIO.h>
 #include <vhal_v2_0/RecurrentTimer.h>
+#include <vhal_v2_0/VehicleHal.h>
+#include <vhal_v2_0/VehiclePropertyStore.h>
 #include <vhal_v2_0/VehicleUtils.h>
+
+#include "FakeUserHal.h"
+#include "VehicleHalClient.h"
+
+#include "FakeUserHal.h"
+#include "VehicleHalClient.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -34,13 +40,13 @@ class GPIO {
 
     ~GPIO() {}
 
-    bool isHandled(VehicleProperty prop) {}
+    bool isHandled(VehicleProperty prop);
 
-    VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool) {}
+    VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool);
 
-    void set(uint8_t pin, bool value) {}
+    void set(uint8_t pin, bool value);
 
-    void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {}
+    void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
 };
 
 } // namespace impl
