@@ -1,3 +1,6 @@
+#ifndef android_hardware_automotive_vehicle_V2_0_impl_GPIO_H_
+#define android_hardware_automotive_vehicle_V2_0_impl_GPIO_H_
+
 #include <android-base/chrono_utils.h>
 #include <android/hardware/automotive/vehicle/2.0/types.h>
 #include <assert.h>
@@ -55,3 +58,5 @@ class GPIO {
 } // namespace automotive
 } // namespace hardware
 } // namespace android
+
+#endif // android_hardware_automotive_vehicle_V2_0_impl_GPIO_H_
