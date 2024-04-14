@@ -50,110 +50,107 @@ static std::vector<Pin> PINS = {
     },
 };
 
-class GPIO {
-  public:
-    GPIO() {
-        ALOGI("GPIO constructor");
+GPIO::GPIO() {
+    ALOGI("GPIO constructor");
 
-        for (const auto &pin : PINS) {
-            // export GPIO pin
-            FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
-            if (exportDevice == NULL) {
-                ALOGE("Failed to open /sys/class/gpio/export");
-                continue;
-            }
+    for (const auto &pin : PINS) {
+        // export GPIO pin
+        FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
+        if (exportDevice == NULL) {
+            ALOGE("Failed to open /sys/class/gpio/export");
+            continue;
+        }
 
-            if (fprintf(exportDevice, "%d", pin.pin) < 0) {
-                ALOGE("Failed to export GPIO");
-                fclose(exportDevice);
-                continue;
-            }
-
+        if (fprintf(exportDevice, "%d", pin.pin) < 0) {
+            ALOGE("Failed to export GPIO");
             fclose(exportDevice);
+            continue;
+        }
 
-            // set direction of GPIO pin
-            char path[256];
-            snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/direction", pin.pin);
-            FILE *directionDevice = fopen(path, "w");
-            if (directionDevice == NULL) {
-                ALOGE("Failed to open %s", path);
-                continue;
-            }
+        fclose(exportDevice);
 
-            if (fprintf(directionDevice, "in") < 0) {
-                ALOGE("Failed to set direction of GPIO");
-                fclose(directionDevice);
-                continue;
-            }
+        // set direction of GPIO pin
+        char path[256];
+        snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/direction", pin.pin);
+        FILE *directionDevice = fopen(path, "w");
+        if (directionDevice == NULL) {
+            ALOGE("Failed to open %s", path);
+            continue;
+        }
 
+        if (fprintf(directionDevice, "in") < 0) {
+            ALOGE("Failed to set direction of GPIO");
             fclose(directionDevice);
+            continue;
+        }
 
-            // open GPIO pin
-            snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/value", pin.pin);
-            pin.fileDescriptor = fopen(path, "r");
-            if (pin.fileDescriptor == NULL) {
-                ALOGE("Failed to open %s", path);
-                continue;
-            }
+        fclose(directionDevice);
+
+        // open GPIO pin
+        snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/value", pin.pin);
+        pin.fileDescriptor = fopen(path, "r");
+        if (pin.fileDescriptor == NULL) {
+            ALOGE("Failed to open %s", path);
+            continue;
+        }
+    }
+}
+
+GPIO::~GPIO() {
+    ALOGI("GPIO destructor");
+    // do stuff here
+}
+
+bool GPIO::isHandled(VehicleProperty prop) {
+    for (const auto &pin : PINS) {
+        if (pin.property == prop) {
+            return true;
         }
     }
 
-    ~GPIO() {
-        ALOGI("GPIO destructor");
-        // do stuff here
-    }
+    return false;
+}
 
-    bool isHandled(VehicleProperty prop) {
-        for (const auto &pin : PINS) {
-            if (pin.property == prop) {
-                return true;
+VehiclePropValuePtr GPIO::get(uint8_t pin, VehiclePropValuePool *pool) {
+    for (const auto &pin : PINS) {
+        if (pin.pin == pin) {
+            if (!pin.isInput) {
+                ALOGE("Cannot read from output pin %d", pin);
+                return nullptr;
             }
-        }
 
-        return false;
-    }
+            char gpioValue = '\0';
 
-    VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool) {
-        for (const auto &pin : PINS) {
-            if (pin.pin == pin) {
-                if (!pin.isInput) {
-                    ALOGE("Cannot read from output pin %d", pin);
-                    return nullptr;
-                }
-
-                char gpioValue = '\0';
-
-                if (fread(&gpioValue, 1, 1, pin.fileDescriptor) < 0) {
-                    ALOGE("Failed to read GPIO value for pin %d", pin);
-                    return nullptr;
-                }
-
-                VehiclePropValuePtr v = pool.obtain(pin.type);
-                v->prop = static_cast<int32_t>(pin.property);
-                v->timestamp = elapsedRealtimeNano();
-
-                pin.inputValue(gpioValue == '1', v);
+            if (fread(&gpioValue, 1, 1, pin.fileDescriptor) < 0) {
+                ALOGE("Failed to read GPIO value for pin %d", pin);
+                return nullptr;
             }
+
+            VehiclePropValuePtr v = pool.obtain(pin.type);
+            v->prop = static_cast<int32_t>(pin.property);
+            v->timestamp = elapsedRealtimeNano();
+
+            pin.inputValue(gpioValue == '1', v);
         }
     }
+}
 
-    void set(uint8_t pin, bool value) { ALOGI("GPIO set pin %d to %d", pin, value); }
+void GPIO::set(uint8_t pin, bool value) { ALOGI("GPIO set pin %d to %d", pin, value); }
 
-    void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
-        for (const auto &pin : PINS) {
-            if (pin.isOutput) {
-                continue;
-            }
-
-            VehiclePropValuePtr v = this->get(pin.pin, pool);
-            if (v == nullptr) {
-                continue;
-            }
-
-            mVehicleClient->setProperty(*v, /*updateStatus=*/false);
+void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
+    for (const auto &pin : PINS) {
+        if (pin.isOutput) {
+            continue;
         }
+
+        VehiclePropValuePtr v = this->get(pin.pin, pool);
+        if (v == nullptr) {
+            continue;
+        }
+
+        mVehicleClient->setProperty(*v, /*updateStatus=*/false);
     }
-};
+}
 
 } // namespace impl
 } // namespace V2_0
