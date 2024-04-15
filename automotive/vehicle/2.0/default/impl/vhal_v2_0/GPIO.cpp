@@ -31,7 +31,7 @@ namespace impl {
 struct Pin {
     bool isInput;
     uint8_t pin;
-    int32_t fileDescriptor;
+    FILE *fileDescriptor;
     VehicleProperty property;
     VehiclePropertyType type;
     std::function<void(bool, VehicleHal::VehiclePropValuePtr)> inputValue;
@@ -103,7 +103,7 @@ GPIO::~GPIO() {
     // do stuff here
 }
 
-bool GPIO::isHandled(VehicleProperty prop) {
+bool GPIO::isHandled(int prop) {
     for (const auto &pin : PINS) {
         if (pin.property == prop) {
             return true;
@@ -117,14 +117,14 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin, VehiclePropValuePool *poo
     for (const auto &pin : PINS) {
         if (pin.pin == pin) {
             if (!pin.isInput) {
-                ALOGE("Cannot read from output pin %d", pin);
+                ALOGE("Cannot read from output pin %d", pin.pin);
                 return nullptr;
             }
 
             char gpioValue = '\0';
 
             if (fread(&gpioValue, 1, 1, pin.fileDescriptor) < 0) {
-                ALOGE("Failed to read GPIO value for pin %d", pin);
+                ALOGE("Failed to read GPIO value for pin %d", pin.pin);
                 return nullptr;
             }
 

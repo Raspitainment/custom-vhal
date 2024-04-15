@@ -39,11 +39,11 @@ namespace impl {
 
 class GPIO {
   public:
-    GPIO() {}
+    GPIO();
 
-    ~GPIO() {}
+    ~GPIO();
 
-    bool isHandled(VehicleProperty prop);
+    bool isHandled(int prop);
 
     VehicleHal::VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool);
 
