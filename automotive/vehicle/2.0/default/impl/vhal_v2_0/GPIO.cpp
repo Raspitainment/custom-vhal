@@ -104,6 +104,7 @@ GPIO::~GPIO() {
 }
 
 bool GPIO::isHandled(int prop) {
+    ALOGI("GPIO isHandled %d", prop);
     for (const auto &pin : PINS) {
         if (pin.property.prop == prop) {
             return true;
@@ -114,6 +115,7 @@ bool GPIO::isHandled(int prop) {
 }
 
 VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePool *pool) {
+    ALOGI("GPIO get pin %d", pin_number);
     for (const auto &pin : PINS) {
         if (pin.pin == pin_number) {
             if (!pin.isInput) {
@@ -140,6 +142,7 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePo
 void GPIO::set(uint8_t pin, bool value) { ALOGI("GPIO set pin %d to %d", pin, value); }
 
 void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
+    ALOGI("GPIO writeAll");
     for (const auto &pin : PINS) {
         if (!pin.isInput) {
             continue;

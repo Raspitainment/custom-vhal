@@ -45,6 +45,7 @@ namespace impl {
 
 namespace {
 constexpr std::chrono::nanoseconds kHeartBeatIntervalNs = 3s;
+constexpr std::chrono::nanoseconds kGPIOIntervalNs = 0.2s;
 
 const VehicleAreaConfig *getAreaConfig(const VehiclePropValue &propValue, const VehiclePropConfig *config) {
     if (isGlobalProp(propValue.prop)) {
@@ -79,12 +80,14 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::createVhalHeartBeatProp() {
 }
 
 DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHalClient *client)
-    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mGPIO(), mGPIOTimer(getGPIOTimerAction()),
-      mVehicleClient(client), {
+    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mGPIOTimer(getGPIOTimerAction()), mGPIO(),
+      mVehicleClient(client) {
     initStaticConfig();
 
     mVehicleClient->registerPropertyValueCallback(
         [this](const VehiclePropValue &value, bool updateStatus) { onPropertyValue(value, updateStatus); });
+
+    mGPIOTimer.registerRecurrentEvent(kGPIOIntervalNs, 0);
 }
 
 VehicleHal::VehiclePropValuePtr DefaultVehicleHal::getUserHalProp(const VehiclePropValue &requestedPropValue,
@@ -526,7 +529,7 @@ RecurrentTimer::Action DefaultVehicleHal::getTimerAction() {
 }
 
 RecurrentTimer::Action DefaultVehicleHal::getGPIOTimerAction() {
-    return [this]([[unused]] const std::vector<int32_t> &properties) { onGPIOPropertyTimer(); };
+    return [this]([[maybe_unused]] const std::vector<int32_t> &properties) { onGPIOPropertyTimer(); };
 }
 
 StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
