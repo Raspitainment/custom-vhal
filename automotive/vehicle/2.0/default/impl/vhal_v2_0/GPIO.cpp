@@ -34,8 +34,8 @@ struct Pin {
     int32_t fileDescriptor;
     VehicleProperty property;
     VehiclePropertyType type;
-    std::function<void(bool, VehiclePropValuePtr)> inputValue;
-    std::function<bool(VehiclePropValuePtr)> outputValue;
+    std::function<void(bool, VehicleHal::VehiclePropValuePtr)> inputValue;
+    std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
 };
 
 static std::vector<Pin> PINS = {
@@ -45,7 +45,9 @@ static std::vector<Pin> PINS = {
         -1,
         VehicleProperty::NIGHT_MODE,
         VehiclePropertyType::INT32,
-        [](bool gpioValue, VehiclePropValuePtr propValue) { propValue->value.int32Values[0] = gpioValue ? 1 : 0; },
+        [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+            propValue->value.int32Values[0] = gpioValue ? 1 : 0;
+        },
         nullptr,
     },
 };
@@ -111,7 +113,7 @@ bool GPIO::isHandled(VehicleProperty prop) {
     return false;
 }
 
-VehiclePropValuePtr GPIO::get(uint8_t pin, VehiclePropValuePool *pool) {
+VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin, VehiclePropValuePool *pool) {
     for (const auto &pin : PINS) {
         if (pin.pin == pin) {
             if (!pin.isInput) {
@@ -126,7 +128,7 @@ VehiclePropValuePtr GPIO::get(uint8_t pin, VehiclePropValuePool *pool) {
                 return nullptr;
             }
 
-            VehiclePropValuePtr v = pool.obtain(pin.type);
+            VehicleHal::VehiclePropValuePtr v = pool.obtain(pin.type);
             v->prop = static_cast<int32_t>(pin.property);
             v->timestamp = elapsedRealtimeNano();
 
@@ -143,7 +145,7 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
             continue;
         }
 
-        VehiclePropValuePtr v = this->get(pin.pin, pool);
+        VehicleHal::VehiclePropValuePtr v = this->get(pin.pin, pool);
         if (v == nullptr) {
             continue;
         }

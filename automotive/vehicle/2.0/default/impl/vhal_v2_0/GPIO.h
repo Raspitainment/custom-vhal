@@ -45,7 +45,7 @@ class GPIO {
 
     bool isHandled(VehicleProperty prop);
 
-    VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool);
+    VehicleHal::VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool);
 
     void set(uint8_t pin, bool value);
 
