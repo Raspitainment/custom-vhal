@@ -79,7 +79,8 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::createVhalHeartBeatProp() {
 }
 
 DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHalClient *client)
-    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mVehicleClient(client), mGPIO() {
+    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mVehicleClient(client), mGPIO(),
+      mGPIOTimer(getGPIOTimerAction()) {
     initStaticConfig();
 
     mVehicleClient->registerPropertyValueCallback(
