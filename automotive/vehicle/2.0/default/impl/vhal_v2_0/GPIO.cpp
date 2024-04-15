@@ -38,11 +38,11 @@ struct Pin {
     std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
 };
 
-static std::vector<Pin> PINS = {
-    {
+static std::vector<Pin> PINS{
+    (struct Pin){
         true,
         26,
-        -1,
+        nullptr,
         VehicleProperty::NIGHT_MODE,
         VehiclePropertyType::INT32,
         [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
@@ -55,7 +55,7 @@ static std::vector<Pin> PINS = {
 GPIO::GPIO() {
     ALOGI("GPIO constructor");
 
-    for (const auto &pin : PINS) {
+    for (auto &pin : PINS) {
         // export GPIO pin
         FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
         if (exportDevice == NULL) {
@@ -105,7 +105,7 @@ GPIO::~GPIO() {
 
 bool GPIO::isHandled(int prop) {
     for (const auto &pin : PINS) {
-        if (pin.property == prop) {
+        if (pin.property.prop == prop) {
             return true;
         }
     }
@@ -113,9 +113,9 @@ bool GPIO::isHandled(int prop) {
     return false;
 }
 
-VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin, VehiclePropValuePool *pool) {
+VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePool *pool) {
     for (const auto &pin : PINS) {
-        if (pin.pin == pin) {
+        if (pin.pin == pin_number) {
             if (!pin.isInput) {
                 ALOGE("Cannot read from output pin %d", pin.pin);
                 return nullptr;
@@ -128,11 +128,11 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin, VehiclePropValuePool *poo
                 return nullptr;
             }
 
-            VehicleHal::VehiclePropValuePtr v = pool.obtain(pin.type);
+            VehicleHal::VehiclePropValuePtr v = pool->obtain(pin.type);
             v->prop = static_cast<int32_t>(pin.property);
             v->timestamp = elapsedRealtimeNano();
 
-            pin.inputValue(gpioValue == '1', v);
+            pin.inputValue(gpioValue == '1', std::move(v));
         }
     }
 }
@@ -141,7 +141,7 @@ void GPIO::set(uint8_t pin, bool value) { ALOGI("GPIO set pin %d to %d", pin, va
 
 void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
     for (const auto &pin : PINS) {
-        if (pin.isOutput) {
+        if (!pin.isInput) {
             continue;
         }
 
@@ -150,7 +150,7 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
             continue;
         }
 
-        mVehicleClient->setProperty(*v, /*updateStatus=*/false);
+        vehicleClient->setProperty(*v, /*updateStatus=*/false);
     }
 }
 

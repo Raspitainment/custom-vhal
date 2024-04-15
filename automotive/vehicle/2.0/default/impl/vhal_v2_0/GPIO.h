@@ -14,21 +14,15 @@
 #include <vhal_v2_0/VehiclePropertyStore.h>
 #include <vhal_v2_0/VehicleUtils.h>
 
+#include "DefaultVehicleHal.h"
+#include "FakeObd2Frame.h"
 #include "FakeUserHal.h"
-#include "VehicleHalClient.h"
-
-#include "FakeUserHal.h"
+#include "PropertyUtils.h"
 #include "VehicleHalClient.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "FakeObd2Frame.h"
-#include "PropertyUtils.h"
-#include "VehicleUtils.h"
-
-#include "DefaultVehicleHal.h"
 
 namespace android {
 namespace hardware {
