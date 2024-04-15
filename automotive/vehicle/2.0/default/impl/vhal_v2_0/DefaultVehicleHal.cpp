@@ -79,8 +79,8 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::createVhalHeartBeatProp() {
 }
 
 DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHalClient *client)
-    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mVehicleClient(client), mGPIO(),
-      mGPIOTimer(getGPIOTimerAction()) {
+    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mVehicleClient(client),
+      mGPIOTimer(getGPIOTimerAction()), mGPIO() {
     initStaticConfig();
 
     mVehicleClient->registerPropertyValueCallback(
@@ -526,7 +526,7 @@ RecurrentTimer::Action DefaultVehicleHal::getTimerAction() {
 }
 
 RecurrentTimer::Action DefaultVehicleHal::getGPIOTimerAction() {
-    return [this](const std::vector<int32_t> &properties) { onGPIOPropertyTimer(); };
+    return [this](const std::vector<int32_t> &_) { onGPIOPropertyTimer(); };
 }
 
 StatusCode DefaultVehicleHal::subscribe(int32_t property, float sampleRate) {
