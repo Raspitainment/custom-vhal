@@ -38,7 +38,7 @@ struct Pin {
     std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
 };
 
-static std::vector<Pin> PINS{
+const std::vector<Pin> PINS{
     (struct Pin){
         true,
         26,
@@ -106,7 +106,7 @@ GPIO::~GPIO() {
 bool GPIO::isHandled(int prop) {
     ALOGI("GPIO isHandled %d", prop);
     for (const auto &pin : PINS) {
-        if (pin.property.prop == prop) {
+        if (static_cast<int32_t>(pin.property) == prop) {
             return true;
         }
     }
