@@ -45,7 +45,7 @@ namespace impl {
 
 namespace {
 constexpr std::chrono::nanoseconds kHeartBeatIntervalNs = 3s;
-constexpr std::chrono::nanoseconds kGPIOIntervalNs = 0.2s;
+constexpr std::chrono::nanoseconds kGPIOIntervalNs = 200ms;
 
 const VehicleAreaConfig *getAreaConfig(const VehiclePropValue &propValue, const VehiclePropConfig *config) {
     if (isGlobalProp(propValue.prop)) {
@@ -80,8 +80,8 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::createVhalHeartBeatProp() {
 }
 
 DefaultVehicleHal::DefaultVehicleHal(VehiclePropertyStore *propStore, VehicleHalClient *client)
-    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mGPIOTimer(getGPIOTimerAction()), mGPIO(),
-      mVehicleClient(client) {
+    : mPropStore(propStore), mRecurrentTimer(getTimerAction()), mGPIOTimer(getGPIOTimerAction()),
+      mVehicleClient(client), mGPIO() {
     initStaticConfig();
 
     mVehicleClient->registerPropertyValueCallback(
