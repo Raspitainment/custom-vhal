@@ -38,7 +38,7 @@ struct Pin {
     std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
 };
 
-const std::vector<Pin> PINS{
+std::vector<Pin> PINS{
     (struct Pin){
         true,
         26,
