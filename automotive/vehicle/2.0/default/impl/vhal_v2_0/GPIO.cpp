@@ -38,21 +38,23 @@ struct Pin {
     std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
 };
 
-void schlechterFixWeilIchDenErrorNichtVerstehe(bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
-    propValue->value.int32Values[0] = gpioValue ? 1 : 0;
+std::vector<Pin> initPins() {
+    return std::vector<Pin>{
+        (struct Pin){
+            true,
+            26,
+            nullptr,
+            VehicleProperty::NIGHT_MODE,
+            VehiclePropertyType::INT32,
+            [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+                propValue->value.int32Values[0] = gpioValue ? 1 : 0;
+            },
+            nullptr,
+        },
+    };
 }
 
-std::vector<Pin> PINS{
-    (struct Pin){
-        true,
-        26,
-        nullptr,
-        VehicleProperty::NIGHT_MODE,
-        VehiclePropertyType::INT32,
-        schlechterFixWeilIchDenErrorNichtVerstehe,
-        nullptr,
-    },
-};
+std::vector<Pin> PINS = initPins();
 
 GPIO::GPIO() {
     ALOGI("GPIO constructor");
