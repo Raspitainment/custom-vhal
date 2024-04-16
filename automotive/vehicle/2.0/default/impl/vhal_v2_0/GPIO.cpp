@@ -38,6 +38,10 @@ struct Pin {
     std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
 };
 
+void schlechterFixWeilIchDenErrorNichtVerstehe(bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+    propValue->value.int32Values[0] = gpioValue ? 1 : 0;
+}
+
 std::vector<Pin> PINS{
     (struct Pin){
         true,
@@ -45,9 +49,7 @@ std::vector<Pin> PINS{
         nullptr,
         VehicleProperty::NIGHT_MODE,
         VehiclePropertyType::INT32,
-        [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
-            propValue->value.int32Values[0] = gpioValue ? 1 : 0;
-        },
+        schlechterFixWeilIchDenErrorNichtVerstehe,
         nullptr,
     },
 };
