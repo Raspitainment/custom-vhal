@@ -141,6 +141,8 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePo
             pin.inputValue(gpioValue == '1', std::move(v));
         }
     }
+
+    return nullptr;
 }
 
 void GPIO::set(uint8_t pin, bool value) { ALOGI("GPIO set pin %d to %d", pin, value); }
