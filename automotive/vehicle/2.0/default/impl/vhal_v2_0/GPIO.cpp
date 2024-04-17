@@ -35,7 +35,7 @@ struct Pin {
     VehicleProperty property;
     VehiclePropertyType type;
     std::function<VehicleHal::VehiclePropValuePtr(bool, VehicleHal::VehiclePropValuePtr)> inputValue;
-    std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
+    std::function<bool(std::unique_ptr<VehiclePropValue>)> outputValue;
 };
 
 std::vector<Pin> initPins() {
@@ -59,7 +59,7 @@ std::vector<Pin> initPins() {
             VehicleProperty::HVAC_AC_ON,
             VehiclePropertyType::INT32,
             nullptr,
-            [](VehicleHal::VehiclePropValuePtr propValue) { return propValue->value.int32Values[0] == 1; },
+            [](std::unique_ptr<VehiclePropValue> propValue) { return propValue->value.int32Values[0] == 1; },
         }};
 }
 
@@ -94,7 +94,7 @@ GPIO::GPIO() {
         }
 
         const char *direction = pin.isInput ? "in" : "out";
-        if (fprintf(directionDevice, direction) < 0) {
+        if (fprintf(directionDevice, "%s", direction) < 0) {
             ALOGE("Failed to set direction of GPIO");
             fclose(directionDevice);
             continue;
@@ -186,7 +186,7 @@ void GPIO::readAll(VehiclePropertyStore *propStore) {
             continue;
         }
 
-        auto propValue = mPropStore->readValueOrNull(static_cast<int32_t>(pin.property));
+        std::unique_ptr<VehiclePropValue> propValue = propStore->readValueOrNull(static_cast<int32_t>(pin.property));
         if (!propValue) {
             ALOGI("Failed to read value for property %d (pin %d)", static_cast<int32_t>(pin.property), pin.pin);
             continue;
