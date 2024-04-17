@@ -34,7 +34,7 @@ struct Pin {
     FILE *fileDescriptor;
     VehicleProperty property;
     VehiclePropertyType type;
-    std::function<void(bool, VehicleHal::VehiclePropValuePtr)> inputValue;
+    std::function<VehicleHal::VehiclePropValuePtr(bool, VehicleHal::VehiclePropValuePtr)> inputValue;
     std::function<bool(VehicleHal::VehiclePropValuePtr)> outputValue;
 };
 
@@ -48,6 +48,7 @@ std::vector<Pin> initPins() {
             VehiclePropertyType::INT32,
             [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
                 propValue->value.int32Values[0] = gpioValue ? 1 : 0;
+                return propValue;
             },
             nullptr,
         },
@@ -134,11 +135,13 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePo
                 return nullptr;
             }
 
+            ALOGI("Read value %d from pin %d", gpioValue, pin.pin);
+
             VehicleHal::VehiclePropValuePtr v = pool->obtain(pin.type);
             v->prop = static_cast<int32_t>(pin.property);
             v->timestamp = elapsedRealtimeNano();
 
-            pin.inputValue(gpioValue == '1', std::move(v));
+            return pin.inputValue(gpioValue == '1', std::move(v));
         }
     }
 
@@ -153,6 +156,7 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
         if (!pin.isInput) {
             continue;
         }
+        ALOGI("Writing value from pin %d", pin.pin);
 
         VehicleHal::VehiclePropValuePtr v = this->get(pin.pin, pool);
         if (v == nullptr) {
