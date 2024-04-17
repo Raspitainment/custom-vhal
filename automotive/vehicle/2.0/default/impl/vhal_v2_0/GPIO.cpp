@@ -128,6 +128,8 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePo
                 return nullptr;
             }
 
+            rewind(pin.fileDescriptor);
+
             char gpioValue = '\0';
 
             if (fread(&gpioValue, 1, 1, pin.fileDescriptor) < 0) {
@@ -135,7 +137,7 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePo
                 return nullptr;
             }
 
-            ALOGI("Read value %d from pin %d", gpioValue, pin.pin);
+            ALOGI("Read ascii value %d from pin %d", gpioValue, pin.pin);
 
             VehicleHal::VehiclePropValuePtr v = pool->obtain(pin.type);
             v->prop = static_cast<int32_t>(pin.property);
