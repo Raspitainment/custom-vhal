@@ -93,7 +93,7 @@ GPIO::GPIO() {
             continue;
         }
 
-        char *direction = pin.isInput ? "in" : "out";
+        const char *direction = pin.isInput ? "in" : "out";
         if (fprintf(directionDevice, direction) < 0) {
             ALOGE("Failed to set direction of GPIO");
             fclose(directionDevice);
@@ -179,6 +179,7 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
 }
 
 void GPIO::readAll(VehiclePropertyStore *propStore) {
+    ALOGI("GPIO readAll");
     for (const auto &pin : PINS) {
         if (pin.isInput) {
             ALOGI("Skipping input pin %d", pin.pin);
