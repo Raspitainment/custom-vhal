@@ -192,7 +192,7 @@ void GPIO::readAll(VehiclePropertyStore *propStore) {
             continue;
         }
 
-        bool gpioValue = pin.outputValue(propValue);
+        bool gpioValue = pin.outputValue(std::move(propValue));
         ALOGI("Writing value %d to pin %d", gpioValue, pin.pin);
 
         rewind(pin.fileDescriptor);
