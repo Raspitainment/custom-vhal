@@ -44,6 +44,7 @@ class GPIO {
     void set(uint8_t pin, bool value);
 
     void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
+    void readAll(VehiclePropertyStore *propStore);
 };
 
 } // namespace impl

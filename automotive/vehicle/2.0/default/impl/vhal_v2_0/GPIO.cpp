@@ -47,12 +47,20 @@ std::vector<Pin> initPins() {
             VehicleProperty::NIGHT_MODE,
             VehiclePropertyType::INT32,
             [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
-                propValue->value.int32Values[0] = gpioValue ? 1 : 0;
+                propValue->value.int32Values[0] = gpioValue ? 0 : 1;
                 return propValue;
             },
             nullptr,
         },
-    };
+        (struct Pin){
+            false,
+            19,
+            nullptr,
+            VehicleProperty::HVAC_AC_ON,
+            VehiclePropertyType::INT32,
+            nullptr,
+            [](VehicleHal::VehiclePropValuePtr propValue) { return propValue->value.int32Values[0] == 1; },
+        }};
 }
 
 std::vector<Pin> PINS = initPins();
@@ -85,7 +93,8 @@ GPIO::GPIO() {
             continue;
         }
 
-        if (fprintf(directionDevice, "in") < 0) {
+        char *direction = pin.isInput ? "in" : "out";
+        if (fprintf(directionDevice, direction) < 0) {
             ALOGE("Failed to set direction of GPIO");
             fclose(directionDevice);
             continue;
@@ -166,6 +175,30 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
         }
 
         vehicleClient->setProperty(*v, /*updateStatus=*/false);
+    }
+}
+
+void GPIO::readAll(VehiclePropertyStore *propStore) {
+    for (const auto &pin : PINS) {
+        if (pin.isInput) {
+            ALOGI("Skipping input pin %d", pin.pin);
+            continue;
+        }
+
+        auto propValue = mPropStore->readValueOrNull(static_cast<int32_t>(pin.property));
+        if (!propValue) {
+            ALOGI("Failed to read value for property %d (pin %d)", static_cast<int32_t>(pin.property), pin.pin);
+            continue;
+        }
+
+        bool gpioValue = pin.outputValue(propValue);
+        ALOGI("Writing value %d to pin %d", gpioValue, pin.pin);
+
+        rewind(pin.fileDescriptor);
+
+        if (fprintf(pin.fileDescriptor, "%d", gpioValue) < 0) {
+            ALOGE("Failed to write GPIO value for pin %d", pin.pin);
+        }
     }
 }
 
