@@ -35,7 +35,7 @@ struct Pin {
     VehicleProperty property;
     VehiclePropertyType type;
     std::function<VehicleHal::VehiclePropValuePtr(bool, VehicleHal::VehiclePropValuePtr)> inputValue;
-    std::function<bool(std::unique_ptr<VehiclePropValue>)> outputValue;
+    std::function<bool(const VehiclePropertyValue &)> outputValue;
 };
 
 std::vector<Pin> initPins() {
@@ -121,7 +121,7 @@ bool GPIO::isHandled(int prop) {
     ALOGI("GPIO isHandled %d", prop);
     for (const auto &pin : PINS) {
         if (static_cast<int32_t>(pin.property) == prop) {
-            return true;
+            return pin.isInput;
         }
     }
 
@@ -178,21 +178,14 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
     }
 }
 
-void GPIO::readAll(VehiclePropertyStore *propStore) {
-    ALOGI("GPIO readAll");
+void GPIO::read(const VehiclePropertyValue &propValue) {
+    ALOGI("GPIO read %d", propValue.prop);
     for (const auto &pin : PINS) {
-        if (pin.isInput) {
-            ALOGI("Skipping input pin %d", pin.pin);
+        if (pin.isInput || static_cast<int32_t>(pin.property) != propValue.prop) {
             continue;
         }
 
-        std::unique_ptr<VehiclePropValue> propValue = propStore->readValueOrNull(static_cast<int32_t>(pin.property));
-        if (!propValue) {
-            ALOGI("Failed to read value for property %d (pin %d)", static_cast<int32_t>(pin.property), pin.pin);
-            continue;
-        }
-
-        bool gpioValue = pin.outputValue(std::move(propValue));
+        bool gpioValue = pin.outputValue(propValue);
         ALOGI("Writing value %d to pin %d", gpioValue, pin.pin);
 
         rewind(pin.fileDescriptor);

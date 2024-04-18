@@ -426,6 +426,8 @@ StatusCode DefaultVehicleHal::set(const VehiclePropValue &propValue) {
         return StatusCode::NOT_AVAILABLE;
     }
 
+    mGPIO.write(propValue);
+
     // Send the value to the vehicle server, the server will talk to the (real or emulated) car
     return mVehicleClient->setProperty(propValue, /*updateStatus=*/false);
 }
