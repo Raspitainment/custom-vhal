@@ -35,7 +35,7 @@ struct Pin {
     VehicleProperty property;
     VehiclePropertyType type;
     std::function<VehicleHal::VehiclePropValuePtr(bool, VehicleHal::VehiclePropValuePtr)> inputValue;
-    std::function<bool(const VehiclePropertyValue &)> outputValue;
+    std::function<bool(const VehiclePropValue &)> outputValue;
 };
 
 std::vector<Pin> initPins() {
