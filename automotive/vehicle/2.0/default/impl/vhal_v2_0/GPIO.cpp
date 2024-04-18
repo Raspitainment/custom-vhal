@@ -39,28 +39,27 @@ struct Pin {
 };
 
 std::vector<Pin> initPins() {
-    return std::vector<Pin>{
-        (struct Pin){
-            true,
-            26,
-            nullptr,
-            VehicleProperty::NIGHT_MODE,
-            VehiclePropertyType::INT32,
-            [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
-                propValue->value.int32Values[0] = gpioValue ? 0 : 1;
-                return propValue;
-            },
-            nullptr,
-        },
-        (struct Pin){
-            false,
-            19,
-            nullptr,
-            VehicleProperty::HVAC_AC_ON,
-            VehiclePropertyType::INT32,
-            nullptr,
-            [](std::unique_ptr<VehiclePropValue> propValue) { return propValue->value.int32Values[0] == 1; },
-        }};
+    return std::vector<Pin>{(struct Pin){
+                                true,
+                                26,
+                                nullptr,
+                                VehicleProperty::NIGHT_MODE,
+                                VehiclePropertyType::INT32,
+                                [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+                                    propValue->value.int32Values[0] = gpioValue ? 0 : 1;
+                                    return propValue;
+                                },
+                                nullptr,
+                            },
+                            (struct Pin){
+                                false,
+                                19,
+                                nullptr,
+                                VehicleProperty::HVAC_AC_ON,
+                                VehiclePropertyType::INT32,
+                                nullptr,
+                                [](const VehiclePropValue &propValue) { return propValue->value.int32Values[0] == 1; },
+                            }};
 }
 
 std::vector<Pin> PINS = initPins();
