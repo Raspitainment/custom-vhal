@@ -46,7 +46,7 @@ class GPIO {
 
     void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
 
-    void read(const VehiclePropertyValue &propValue);
+    void read(const VehiclePropValue &propValue);
 };
 
 } // namespace impl

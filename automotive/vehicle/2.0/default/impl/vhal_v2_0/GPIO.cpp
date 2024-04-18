@@ -176,7 +176,7 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
     }
 }
 
-void GPIO::read(const VehiclePropertyValue &propValue) {
+void GPIO::read(const VehiclePropValue &propValue) {
     ALOGI("GPIO read %d", propValue.prop);
     for (const auto &pin : PINS) {
         if (pin.isInput || static_cast<int32_t>(pin.property) != propValue.prop) {
