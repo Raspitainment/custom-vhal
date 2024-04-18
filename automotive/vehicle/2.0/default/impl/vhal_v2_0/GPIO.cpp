@@ -103,7 +103,13 @@ GPIO::GPIO() {
 
         // open GPIO pin
         snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/value", pin.pin);
-        pin.fileDescriptor = fopen(path, "r");
+
+        if (pin.isInput) {
+            pin.fileDescriptor = fopen(path, "r");
+        } else {
+            pin.fileDescriptor = fopen(path, "w");
+        }
+
         if (pin.fileDescriptor == NULL) {
             ALOGE("Failed to open %s", path);
             continue;
@@ -182,13 +188,13 @@ void GPIO::read(const VehiclePropValue &propValue) {
             continue;
         }
 
-        bool gpioValue = pin.outputValue(propValue);
-        ALOGI("Writing value %d to pin %d", gpioValue, pin.pin);
+        char gpioValue = pin.outputValue(propValue) ? '1' : '0';
+        ALOGI("Writing value %c to pin %d", gpioValue, pin.pin);
 
         rewind(pin.fileDescriptor);
 
-        if (fprintf(pin.fileDescriptor, "%d", gpioValue) < 0) {
-            ALOGE("Failed to write GPIO value for pin %d", pin.pin);
+        if (fprintf(pin.fileDescriptor, "%c", gpioValue) < 0) {
+            ALOGE("Failed to write GPIO value %c for pin %d", gpioValue, pin.pin);
         }
     }
 }
