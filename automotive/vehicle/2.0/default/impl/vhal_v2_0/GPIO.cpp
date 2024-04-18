@@ -58,7 +58,7 @@ std::vector<Pin> initPins() {
                                 VehicleProperty::HVAC_AC_ON,
                                 VehiclePropertyType::INT32,
                                 nullptr,
-                                [](const VehiclePropValue &propValue) { return propValue->value.int32Values[0] == 1; },
+                                [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 1; },
                             }};
 }
 
