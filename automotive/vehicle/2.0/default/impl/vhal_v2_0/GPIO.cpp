@@ -159,8 +159,6 @@ VehicleHal::VehiclePropValuePtr GPIO::get(uint8_t pin_number, VehiclePropValuePo
     return nullptr;
 }
 
-void GPIO::set(uint8_t pin, bool value) { ALOGI("GPIO set pin %d to %d", pin, value); }
-
 void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
     ALOGI("GPIO writeAll");
     for (const auto &pin : PINS) {

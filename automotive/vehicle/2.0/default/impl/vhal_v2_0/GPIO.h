@@ -5,6 +5,8 @@
 #include <android/hardware/automotive/vehicle/2.0/types.h>
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #include <unordered_set>
 #include <utils/Log.h>
 #include <utils/SystemClock.h>
@@ -19,6 +21,7 @@
 #include "FakeUserHal.h"
 #include "PropertyUtils.h"
 #include "VehicleHalClient.h"
+#include "VehicleUtils.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -41,10 +44,9 @@ class GPIO {
 
     VehicleHal::VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool);
 
-    void set(uint8_t pin, bool value);
-
     void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
-    void GPIO::read(const VehiclePropertyValue &propValue);
+
+    void read(const VehiclePropertyValue &propValue);
 
 } // namespace impl
 } // namespace V2_0

@@ -492,10 +492,7 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
     return v;
 }
 
-void DefaultVehicleHal::onGPIOPropertyTimer() {
-    mGPIO.writeAll(getValuePool(), mVehicleClient);
-    mGPIO.readAll(mPropStore);
-}
+void DefaultVehicleHal::onGPIOPropertyTimer() { mGPIO.writeAll(getValuePool(), mVehicleClient); }
 
 void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
     ALOGI("onContinuousPropertyTimer(): properties size: %zu", properties.size());
