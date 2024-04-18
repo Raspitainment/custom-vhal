@@ -21,7 +21,6 @@
 #include "FakeUserHal.h"
 #include "PropertyUtils.h"
 #include "VehicleHalClient.h"
-#include "VehicleUtils.h"
 
 #include <stdio.h>
 #include <string.h>
