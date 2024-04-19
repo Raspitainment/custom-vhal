@@ -38,7 +38,7 @@ struct Pin {
     std::function<bool(const VehiclePropValue &)> outputValue;
 };
 
-std::vector<Pin> initPins(){
+std::vector<Pin> initPins() {
     return std::vector<Pin>{(struct Pin){
                                 true,
                                 26,
@@ -68,7 +68,8 @@ std::vector<Pin> initPins(){
                                 VehiclePropertyType::INT32,
                                 nullptr,
                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
-                            }}};
+                            }};
+}
 
 std::vector<Pin> PINS = initPins();
 
