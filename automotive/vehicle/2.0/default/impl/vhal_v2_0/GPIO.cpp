@@ -69,7 +69,6 @@ std::vector<Pin> initPins(){
                                 nullptr,
                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
                             }}};
-}
 
 std::vector<Pin> PINS = initPins();
 
