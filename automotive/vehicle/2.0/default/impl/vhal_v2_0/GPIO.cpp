@@ -38,7 +38,7 @@ struct Pin {
     std::function<bool(const VehiclePropValue &)> outputValue;
 };
 
-std::vector<Pin> initPins() {
+std::vector<Pin> initPins(){
     return std::vector<Pin>{(struct Pin){
                                 true,
                                 26,
@@ -46,7 +46,7 @@ std::vector<Pin> initPins() {
                                 VehicleProperty::NIGHT_MODE,
                                 VehiclePropertyType::INT32,
                                 [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
-                                    propValue->value.int32Values[0] = gpioValue ? 0 : 1;
+                                    propValue->value.int32Values[0] = gpioValue ? 1 : 0;
                                     return propValue;
                                 },
                                 nullptr,
@@ -58,8 +58,17 @@ std::vector<Pin> initPins() {
                                 VehicleProperty::HVAC_AC_ON,
                                 VehiclePropertyType::INT32,
                                 nullptr,
-                                [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 1; },
-                            }};
+                                [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                            },
+                            (struct Pin){
+                                false,
+                                13,
+                                nullptr,
+                                VehicleProperty::HVAC_DEFROSTER,
+                                VehiclePropertyType::INT32,
+                                nullptr,
+                                [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                            }}};
 }
 
 std::vector<Pin> PINS = initPins();
