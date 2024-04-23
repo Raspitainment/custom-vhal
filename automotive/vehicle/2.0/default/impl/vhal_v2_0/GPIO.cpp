@@ -27,7 +27,6 @@ namespace automotive {
 namespace vehicle {
 namespace V2_0 {
 namespace impl {
-
 struct Pin {
     bool isInput;
     uint8_t pin;
@@ -39,36 +38,32 @@ struct Pin {
 };
 
 std::vector<Pin> initPins() {
-    return std::vector<Pin>{(struct Pin){
-                                true,
-                                26,
-                                nullptr,
-                                VehicleProperty::NIGHT_MODE,
-                                VehiclePropertyType::INT32,
-                                [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
-                                    propValue->value.int32Values[0] = gpioValue ? 1 : 0;
-                                    return propValue;
-                                },
-                                nullptr,
-                            },
-                            (struct Pin){
-                                false,
-                                19,
-                                nullptr,
-                                VehicleProperty::HVAC_AC_ON,
-                                VehiclePropertyType::INT32,
-                                nullptr,
-                                [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
-                            },
-                            (struct Pin){
-                                false,
-                                13,
-                                nullptr,
-                                VehicleProperty::HVAC_DEFROSTER,
-                                VehiclePropertyType::INT32,
-                                nullptr,
-                                [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
-                            }};
+    return std::vector<Pin>{
+        struct Pin{
+            .isInput = true,
+            .pin = 26,
+            .property = VehicleProperty::NIGHT_MODE,
+            .type = VehiclePropertyType::INT32,
+            .inputValue =
+                [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+                    propValue->value.int32Values[0] = gpioValue ? 1 : 0;
+                    return propValue;
+                },
+        },
+        struct Pin{
+            .isInput = false,
+            .pin = 19,
+            .property = VehicleProperty::HVAC_AC_ON,
+            .type = VehiclePropertyType::INT32,
+            .outputValue = [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+        },
+        struct Pin{
+            .isInput = false,
+            .pin = 13,
+            .property = VehicleProperty::HVAC_DEFROSTER,
+            .type = VehiclePropertyType::INT32,
+            .outputValue = [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+        }};
 }
 
 std::vector<Pin> PINS = initPins();
