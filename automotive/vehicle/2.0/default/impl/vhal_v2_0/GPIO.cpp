@@ -39,7 +39,7 @@ struct Pin {
 
 std::vector<Pin> initPins() {
     return std::vector<Pin>{
-        struct Pin{
+        (struct Pin){
             .isInput = true,
             .pin = 26,
             .property = VehicleProperty::NIGHT_MODE,
@@ -50,14 +50,14 @@ std::vector<Pin> initPins() {
                     return propValue;
                 },
         },
-        struct Pin{
+        (struct Pin){
             .isInput = false,
             .pin = 19,
             .property = VehicleProperty::HVAC_AC_ON,
             .type = VehiclePropertyType::INT32,
             .outputValue = [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
         },
-        struct Pin{
+        (struct Pin){
             .isInput = false,
             .pin = 13,
             .property = VehicleProperty::HVAC_DEFROSTER,
