@@ -35,7 +35,7 @@ struct InputPin {
     std::function<VehicleHal::VehiclePropValuePtr(std::vector<bool>, VehicleHal::VehiclePropValuePtr)> inputValue;
 
     // read the specified GPIO pins and compute the value of the property
-    const VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) {
+    const VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) const {
         std::vector<bool> gpioValues = {};
 
         for (unsigned long i = 0; i < pins.size(); i++) {
@@ -68,7 +68,7 @@ struct OutputPin {
     std::function<bool(const VehiclePropValue &)> outputValue;
 
     // write the value of the property to the specified GPIO pin
-    const void write(const VehiclePropValue &propValue) {
+    void write(const VehiclePropValue &propValue) const {
         char gpioValue = outputValue(propValue) ? '1' : '0';
         ALOGI("Writing value %c to pin %d", gpioValue, pin);
 
