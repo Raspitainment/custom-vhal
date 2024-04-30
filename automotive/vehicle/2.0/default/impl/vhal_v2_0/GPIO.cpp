@@ -35,7 +35,7 @@ struct InputPin {
     std::function<VehicleHal::VehiclePropValuePtr(std::vector<bool>, VehicleHal::VehiclePropValuePtr)> inputValue;
 
     // read the specified GPIO pins and compute the value of the property
-    VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) {
+    const VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) {
         std::vector<bool> gpioValues = {};
 
         for (unsigned long i = 0; i < pins.size(); i++) {
@@ -68,7 +68,7 @@ struct OutputPin {
     std::function<bool(const VehiclePropValue &)> outputValue;
 
     // write the value of the property to the specified GPIO pin
-    void write(const VehiclePropValue &propValue) {
+    const void write(const VehiclePropValue &propValue) {
         char gpioValue = outputValue(propValue) ? '1' : '0';
         ALOGI("Writing value %c to pin %d", gpioValue, pin);
 
@@ -88,54 +88,52 @@ struct Pin {
 
 std::vector<Pin> initPins() {
     return std::vector<Pin>{
-        (union PinUnion){.isInput = true,
-                         .inputPin =
-                             (struct InputPin){
-                                 .pins = {26},
-                                 .property = VehicleProperty::NIGHT_MODE,
-                                 .type = VehiclePropertyType::INT32,
-                                 .inputValue =
-                                     [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
-                                         propValue->value.int32Values[0] = gpioValues[0] ? 1 : 0;
-                                         return propValue;
-                                     },
+        (struct Pin){.isInput = true,
+                     .inputPin =
+                         (struct InputPin){
+                             .pins = {26},
+                             .property = VehicleProperty::NIGHT_MODE,
+                             .type = VehiclePropertyType::INT32,
+                             .inputValue =
+                                 [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
+                                     propValue->value.int32Values[0] = gpioValues[0] ? 1 : 0;
+                                     return propValue;
+                                 },
 
-                             }},
-        (union PinUnion){
-            .isInput = false,
-            .outputPin =
-                (struct OutputPin){
-                    .pin = 19,
-                    .property = VehicleProperty::HVAC_AC_ON,
-                    .type = VehiclePropertyType::INT32,
-                    .outputValue =
-                        [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
-                }},
-        (union PinUnion){
-            .isInput = false,
-            .outputPin =
-                (struct OutputPin){
-                    .pin = 13,
-                    .property = VehicleProperty::HVAC_DEFROSTER,
-                    .type = VehiclePropertyType::INT32,
-                    .outputValue =
-                        [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
-                }},
-        (union PinUnion){.isInput = true,
-                         .inputPin =
-                             (struct InputPin){
-                                 .pins = {5, 11, 9},
-                                 .property = VehicleProperty::HVAC_FAN_SPEED,
-                                 .type = VehiclePropertyType::INT32,
-                                 .inputValue =
-                                     [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
-                                         propValue->value.int32Values[0] = gpioValues[0]   ? 1
-                                                                           : gpioValues[1] ? 2
-                                                                           : gpioValues[2] ? 3
-                                                                                           : 0;
-                                         return propValue;
-                                     },
-                             }},
+                         }},
+        (struct Pin){.isInput = false,
+                     .outputPin =
+                         (struct OutputPin){
+                             .pin = 19,
+                             .property = VehicleProperty::HVAC_AC_ON,
+                             .type = VehiclePropertyType::INT32,
+                             .outputValue =
+                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                         }},
+        (struct Pin){.isInput = false,
+                     .outputPin =
+                         (struct OutputPin){
+                             .pin = 13,
+                             .property = VehicleProperty::HVAC_DEFROSTER,
+                             .type = VehiclePropertyType::INT32,
+                             .outputValue =
+                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                         }},
+        (struct Pin){.isInput = true,
+                     .inputPin =
+                         (struct InputPin){
+                             .pins = {5, 11, 9},
+                             .property = VehicleProperty::HVAC_FAN_SPEED,
+                             .type = VehiclePropertyType::INT32,
+                             .inputValue =
+                                 [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
+                                     propValue->value.int32Values[0] = gpioValues[0]   ? 1
+                                                                       : gpioValues[1] ? 2
+                                                                       : gpioValues[2] ? 3
+                                                                                       : 0;
+                                     return propValue;
+                                 },
+                         }},
 
     };
 }
