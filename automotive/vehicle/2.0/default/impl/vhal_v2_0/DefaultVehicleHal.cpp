@@ -141,10 +141,6 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::get(const VehiclePropValue &r
         v = getValuePool()->obtain(*internalPropValue);
     }
 
-    if (mGPIO.isHandled(propId)) {
-        v = mGPIO.get(propId, getValuePool());
-    }
-
     if (!v) {
         *outStatus = StatusCode::INVALID_ARG;
     } else if (v->status == VehiclePropertyStatus::AVAILABLE) {

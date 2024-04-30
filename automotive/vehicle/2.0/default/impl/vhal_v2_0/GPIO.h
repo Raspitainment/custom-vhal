@@ -39,8 +39,6 @@ class GPIO {
 
     ~GPIO();
 
-    bool isHandled(int prop);
-
     void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
 
     void read(const VehiclePropValue &propValue);

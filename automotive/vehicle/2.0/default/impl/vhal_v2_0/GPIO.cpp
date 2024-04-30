@@ -217,19 +217,6 @@ GPIO::~GPIO() {
     // do stuff here
 }
 
-bool GPIO::isHandled(int prop) {
-    ALOGI("GPIO isHandled %d", prop);
-    for (const auto &pin : PINS) {
-        if (pin.isInput && pin.pin.inputPin.property == static_cast<VehicleProperty>(prop)) {
-            return true;
-        } else if (pin.pin.outputPin.property == static_cast<VehicleProperty>(prop)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
     ALOGI("GPIO writeAll");
     for (const auto &pin : PINS) {
