@@ -36,6 +36,8 @@ struct InputPin {
 
     // read the specified GPIO pins and compute the value of the property
     const VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) const {
+        ALOGI("Reading value of property %d from GPIO", static_cast<int32_t>(property));
+
         std::vector<bool> gpioValues = {};
 
         for (unsigned long i = 0; i < pins.size(); i++) {
@@ -53,6 +55,11 @@ struct InputPin {
         }
 
         VehicleHal::VehiclePropValuePtr v = pool->obtain(type);
+        if (v == nullptr) {
+            ALOGE("Failed to obtain VehiclePropValuePtr");
+            return nullptr;
+        }
+
         v->prop = static_cast<int32_t>(property);
         v->timestamp = elapsedRealtimeNano();
 
@@ -69,6 +76,8 @@ struct OutputPin {
 
     // write the value of the property to the specified GPIO pin
     void write(const VehiclePropValue &propValue) const {
+        ALOGI("Writing value of property %d to GPIO", static_cast<int32_t>(property));
+
         char gpioValue = outputValue(propValue) ? '1' : '0';
         ALOGI("Writing value %c to pin %d", gpioValue, pin);
 
@@ -211,13 +220,14 @@ GPIO::~GPIO() {
     // do stuff here
 }
 
-void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
-    ALOGI("GPIO writeAll");
+void GPIO::readAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
+    ALOGI("GPIO readAll");
     for (const auto &pin : PINS) {
         if (!pin.isInput) {
             continue;
         }
-        ALOGI("Writing value of property %d to GPIO", static_cast<int32_t>(pin.inputPin.property));
+
+        ALOGI("Reading value of property %d into vehicleClient", static_cast<int32_t>(pin.inputPin.property));
 
         VehicleHal::VehiclePropValuePtr v = pin.inputPin.read(pool);
         if (v == nullptr) {
@@ -228,15 +238,22 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
     }
 }
 
-void GPIO::read(const VehiclePropValue &propValue) {
-    ALOGI("GPIO read %d", propValue.prop);
+void GPIO::write(const VehiclePropValue &propValue) {
+    ALOGI("GPIO write %d", propValue.prop);
     for (const auto &pin : PINS) {
-        if (pin.isInput || static_cast<int32_t>(pin.outputPin.property) != propValue.prop) {
+        if (pin.isInput) {
+            continue;
+        }
+
+        if (static_cast<int32_t>(pin.outputPin.property) != propValue.prop) {
             continue;
         }
 
         pin.outputPin.write(propValue);
+        return;
     }
+
+    ALOGE("Failed to write value of property %d to GPIO", propValue.prop);
 }
 
 } // namespace impl

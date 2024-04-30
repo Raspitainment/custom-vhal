@@ -422,7 +422,7 @@ StatusCode DefaultVehicleHal::set(const VehiclePropValue &propValue) {
         return StatusCode::NOT_AVAILABLE;
     }
 
-    mGPIO.read(propValue);
+    mGPIO.write(propValue);
 
     // Send the value to the vehicle server, the server will talk to the (real or emulated) car
     return mVehicleClient->setProperty(propValue, /*updateStatus=*/false);
@@ -488,7 +488,7 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
     return v;
 }
 
-void DefaultVehicleHal::onGPIOPropertyTimer() { mGPIO.writeAll(getValuePool(), mVehicleClient); }
+void DefaultVehicleHal::onGPIOPropertyTimer() { mGPIO.readAll(getValuePool(), mVehicleClient); }
 
 void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
     ALOGI("onContinuousPropertyTimer(): properties size: %zu", properties.size());

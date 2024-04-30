@@ -39,9 +39,9 @@ class GPIO {
 
     ~GPIO();
 
-    void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
+    void readAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
 
-    void read(const VehiclePropValue &propValue);
+    void write(const VehiclePropValue &propValue);
 };
 
 } // namespace impl
