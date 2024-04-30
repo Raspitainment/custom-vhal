@@ -38,7 +38,7 @@ struct InputPin {
     VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) {
         std::vector<bool> gpioValues = {};
 
-        for (int i = 0; i < pins.size(); i++) {
+        for (unsigned long i = 0; i < pins.size(); i++) {
             FILE *fileDescriptor = fileDescriptors[i];
 
             rewind(fileDescriptor);
@@ -80,13 +80,9 @@ struct OutputPin {
     }
 };
 
-union PinUnion {
+struct Pin {
     InputPin inputPin;
     OutputPin outputPin;
-};
-
-struct Pin {
-    PinUnion pin;
     bool isInput;
 };
 
@@ -100,7 +96,7 @@ std::vector<Pin> initPins() {
                                  .type = VehiclePropertyType::INT32,
                                  .inputValue =
                                      [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
-                                         propValue->value.int32Values[0] = gpioValue[0] ? 1 : 0;
+                                         propValue->value.int32Values[0] = gpioValues[0] ? 1 : 0;
                                          return propValue;
                                      },
 
@@ -150,7 +146,7 @@ GPIO::GPIO() {
     ALOGI("GPIO constructor");
 
     for (auto &pin : PINS) {
-        std::vector<uint8_t> pins = pin.isInput ? pin.pin.inputPin.pins : std::vector<uint8_t>{pin.pin.outputPin.pin};
+        std::vector<uint8_t> pins = pin.isInput ? pin.inputPin.pins : std::vector<uint8_t>{pin.outputPin.pin};
         std::vector<FILE *> fileDescriptors{};
 
         for (const auto &pinNumber : pins) {
@@ -160,7 +156,7 @@ GPIO::GPIO() {
                 continue;
             }
 
-            if (fprintf(exportDevice, "%d", pin.pin) < 0) {
+            if (fprintf(exportDevice, "%d", pinNumber) < 0) {
                 ALOGE("Failed to export GPIO");
                 fclose(exportDevice);
                 continue;
@@ -187,7 +183,7 @@ GPIO::GPIO() {
             fclose(directionDevice);
 
             // open GPIO pin
-            snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/value", pin.pin);
+            snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/value", pinNumber);
 
             FILE *fileDescriptor;
             if (pin.isInput) {
@@ -205,9 +201,9 @@ GPIO::GPIO() {
         }
 
         if (pin.isInput) {
-            pin.pin.inputPin.fileDescriptors = fileDescriptors;
+            pin.inputPin.fileDescriptors = fileDescriptors;
         } else {
-            pin.pin.outputPin.fileDescriptor = fileDescriptors[0];
+            pin.outputPin.fileDescriptor = fileDescriptors[0];
         }
     }
 }
@@ -223,9 +219,9 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
         if (!pin.isInput) {
             continue;
         }
-        ALOGI("Writing value from pin %d", pin.pin);
+        ALOGI("Writing value of property %d to GPIO", static_cast<int32_t>(pin.inputPin.property));
 
-        VehicleHal::VehiclePropValuePtr v = pin.pin.inputPin.read(pool);
+        VehicleHal::VehiclePropValuePtr v = pin.inputPin.read(pool);
         if (v == nullptr) {
             continue;
         }
@@ -237,11 +233,11 @@ void GPIO::writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient)
 void GPIO::read(const VehiclePropValue &propValue) {
     ALOGI("GPIO read %d", propValue.prop);
     for (const auto &pin : PINS) {
-        if (pin.isInput || static_cast<int32_t>(pin.property) != propValue.prop) {
+        if (pin.isInput || static_cast<int32_t>(pin.outputPin.property) != propValue.prop) {
             continue;
         }
 
-        pin.pin.outputPin.write(propValue);
+        pin.outputPin.write(propValue);
     }
 }
 
