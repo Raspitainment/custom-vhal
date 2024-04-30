@@ -231,6 +231,7 @@ void GPIO::readAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) 
 
         VehicleHal::VehiclePropValuePtr v = pin.inputPin.read(pool);
         if (v == nullptr) {
+            ALOGE("Failed to read value of property %d from GPIO", static_cast<int32_t>(pin.inputPin.property));
             continue;
         }
 

@@ -488,7 +488,16 @@ VehicleHal::VehiclePropValuePtr DefaultVehicleHal::doInternalHealthCheck() {
     return v;
 }
 
-void DefaultVehicleHal::onGPIOPropertyTimer() { mGPIO.readAll(getValuePool(), mVehicleClient); }
+void DefaultVehicleHal::onGPIOPropertyTimer() {
+    VehiclePropValuePool *pool = getValuePool();
+
+    if (pool == nullptr) {
+        ALOGE("onGPIOPropertyTimer(): pool is null");
+        return;
+    }
+
+    mGPIO.readAll(pool, mVehicleClient);
+}
 
 void DefaultVehicleHal::onContinuousPropertyTimer(const std::vector<int32_t> &properties) {
     ALOGI("onContinuousPropertyTimer(): properties size: %zu", properties.size());
