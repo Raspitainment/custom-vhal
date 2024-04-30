@@ -64,27 +64,34 @@ std::vector<Pin> initPins() {
             .type = VehiclePropertyType::INT32,
             .outputValue = [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
         },
-        (struct Pin){
-            .isInput = false,
-            .pin = 5,
-            .property = VehicleProperty::HVAC_FAN_SPEED,
-            .type = VehiclePropertyType::INT32,
-            .outputValue = [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 3; },
-        },
-        (struct Pin){
-            .isInput = false,
-            .pin = 11,
-            .property = VehicleProperty::HVAC_FAN_SPEED,
-            .type = VehiclePropertyType::INT32,
-            .outputValue = [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 2; },
-        },
-        (struct Pin){
-            .isInput = false,
-            .pin = 9,
-            .property = VehicleProperty::HVAC_FAN_SPEED,
-            .type = VehiclePropertyType::INT32,
-            .outputValue = [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 1; },
-        }};
+        (struct Pin){.isInput = true,
+                     .pin = 5,
+                     .property = VehicleProperty::HVAC_FAN_SPEED,
+                     .type = VehiclePropertyType::INT32,
+                     .inputValue =
+                         [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+                             propValue->value.int32Values[0] = gpioValue ? 3 : 0;
+                             return propValue;
+                         }},
+        (struct Pin){.isInput = true,
+                     .pin = 11,
+                     .property = VehicleProperty::HVAC_FAN_SPEED,
+                     .type = VehiclePropertyType::INT32,
+                     .inputValue =
+                         [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+                             propValue->value.int32Values[0] = gpioValue ? 3 : 0;
+                             return propValue;
+                         }},
+        (struct Pin){.isInput = true,
+                     .pin = 9,
+                     .property = VehicleProperty::HVAC_FAN_SPEED,
+                     .type = VehiclePropertyType::INT32,
+                     .inputValue =
+                         [](bool gpioValue, VehicleHal::VehiclePropValuePtr propValue) {
+                             propValue->value.int32Values[0] = gpioValue ? 3 : 0;
+                             return propValue;
+                         }},
+    };
 }
 
 std::vector<Pin> PINS = initPins();
