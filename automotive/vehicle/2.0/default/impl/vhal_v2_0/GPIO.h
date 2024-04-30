@@ -41,8 +41,6 @@ class GPIO {
 
     bool isHandled(int prop);
 
-    VehicleHal::VehiclePropValuePtr get(uint8_t pin, VehiclePropValuePool *pool);
-
     void writeAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient);
 
     void read(const VehiclePropValue &propValue);
