@@ -137,9 +137,9 @@ std::vector<Pin> initPins() {
                              .inputValue =
                                  [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
                                      propValue->areaId = HVAC_ALL;
-                                     propValue->value.int32Values[0] = gpioValues[0]   ? 2
+                                     propValue->value.int32Values[0] = gpioValues[2]   ? 4
                                                                        : gpioValues[1] ? 3
-                                                                       : gpioValues[2] ? 4
+                                                                       : gpioValues[0] ? 2
                                                                                        : 1;
                                      return propValue;
                                  },
