@@ -68,7 +68,7 @@ struct InputPin {
 
         struct gpio_v2_line_values line_values = {
             .mask = mask,
-            .values = {0},
+            .bits = 0,
         };
 
         int ret = ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &line_values);
@@ -79,7 +79,7 @@ struct InputPin {
 
         std::vector<bool> gpioValues = {};
         for (unsigned long i = 0; i < pins.size(); i++) {
-            gpioValues[i] = line_values.values & (1 << pins[i]);
+            gpioValues[i] = line_values.bits & (1 << pins[i]);
         }
 
         VehicleHal::VehiclePropValuePtr v = pool->obtain(type);
