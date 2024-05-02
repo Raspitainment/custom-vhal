@@ -61,8 +61,8 @@ struct InputPin {
         ALOGI("Reading value of property %d from GPIO", static_cast<int32_t>(property));
 
         uint64_t mask = 0;
-        for (const auto &pin : pins) {
-            mask |= 1 << pin;
+        for (size_t i = 0; i < pins.size(); i++) {
+            mask |= 1 << i;
         }
 
         struct gpio_v2_line_values line_values = {
@@ -105,11 +105,10 @@ struct OutputPin {
     void write(const VehiclePropValue &propValue) const {
         ALOGI("Writing value of property %d to GPIO", static_cast<int32_t>(property));
 
-        uint64_t mask = 1 << pin;
-        uint64_t bits = static_cast<uint64_t>(outputValue(propValue)) << pin;
+        uint64_t bits = static_cast<uint64_t>(outputValue(propValue));
         struct gpio_v2_line_values line_values = {
             .bits = bits,
-            .mask = mask,
+            .mask = 0b1,
         };
 
         int ret = ioctl(fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &line_values);
