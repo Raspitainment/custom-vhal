@@ -61,7 +61,7 @@ struct InputPin {
         ALOGI("Reading value of property %d from GPIO", static_cast<int32_t>(property));
 
         struct gpio_v2_line_values line_values = {
-            .mask = (1 << (uint64_t)pins.size()) - 1,
+            .mask = (uint64_t)((1 << pins.size()) - 1),
             .bits = 0,
         };
 
