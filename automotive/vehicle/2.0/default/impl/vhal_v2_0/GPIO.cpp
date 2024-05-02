@@ -27,6 +27,23 @@ namespace automotive {
 namespace vehicle {
 namespace V2_0 {
 namespace impl {
+
+enum PIN {
+    PHOTO_DIODE = 26,
+    LED_GREEN_1 = 19,
+    LED_YELLOW_1 = 13,
+    SWITCH_1_A = 6,
+    SWITCH_1_B = 5,
+    SWITCH_1_C = 0,
+    LED_RED_1 = 11,
+    LED_BLUE_1 = 9,
+    LED_BLUE_2 = 10,
+    LED_BLUE_3 = 22,
+    SWITCH_2_A = 27,
+    SWITCH_2_B = 17,
+    SWITCH_2_C = 4,
+};
+
 struct InputPin {
     std::vector<enum PIN> pins;
     std::vector<FILE *> fileDescriptors;
@@ -93,22 +110,6 @@ struct Pin {
     InputPin inputPin;
     OutputPin outputPin;
     bool isInput;
-};
-
-enum PIN {
-    PHOTO_DIODE = 26,
-    LED_GREEN_1 = 19,
-    LED_YELLOW_1 = 13,
-    SWITCH_1_A = 6,
-    SWITCH_1_B = 5,
-    SWITCH_1_C = 0,
-    LED_RED_1 = 11,
-    LED_BLUE_1 = 9,
-    LED_BLUE_2 = 10,
-    LED_BLUE_3 = 22,
-    SWITCH_2_A = 27,
-    SWITCH_2_B = 17,
-    SWITCH_2_C = 4,
 };
 
 std::vector<Pin> initPins() {
