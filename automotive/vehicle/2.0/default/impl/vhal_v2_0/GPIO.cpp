@@ -28,7 +28,7 @@ namespace vehicle {
 namespace V2_0 {
 namespace impl {
 struct InputPin {
-    std::vector<uint8_t> pins;
+    std::vector<enum PIN> pins;
     std::vector<FILE *> fileDescriptors;
     VehicleProperty property;
     VehiclePropertyType type;
@@ -68,7 +68,7 @@ struct InputPin {
 };
 
 struct OutputPin {
-    uint8_t pin;
+    enum PIN pin;
     FILE *fileDescriptor;
     VehicleProperty property;
     VehiclePropertyType type;
@@ -95,12 +95,28 @@ struct Pin {
     bool isInput;
 };
 
+enum PIN {
+    PHOTO_DIODE = 26,
+    LED_GREEN_1 = 19,
+    LED_YELLOW_1 = 13,
+    SWITCH_1_A = 6,
+    SWITCH_1_B = 5,
+    SWITCH_1_C = 0,
+    LED_RED_1 = 11,
+    LED_BLUE_1 = 9,
+    LED_BLUE_2 = 10,
+    LED_BLUE_3 = 22,
+    SWITCH_2_A = 27,
+    SWITCH_2_B = 17,
+    SWITCH_2_C = 4,
+};
+
 std::vector<Pin> initPins() {
     return std::vector<Pin>{
         (struct Pin){.isInput = true,
                      .inputPin =
                          (struct InputPin){
-                             .pins = {26},
+                             .pins = {PIN::PHOTO_DIODE},
                              .property = VehicleProperty::NIGHT_MODE,
                              .type = VehiclePropertyType::INT32,
                              .inputValue =
@@ -113,7 +129,7 @@ std::vector<Pin> initPins() {
         (struct Pin){.isInput = false,
                      .outputPin =
                          (struct OutputPin){
-                             .pin = 19,
+                             .pin = PIN::LED_BLUE_1,
                              .property = VehicleProperty::HVAC_AC_ON,
                              .type = VehiclePropertyType::INT32,
                              .outputValue =
@@ -122,7 +138,7 @@ std::vector<Pin> initPins() {
         (struct Pin){.isInput = false,
                      .outputPin =
                          (struct OutputPin){
-                             .pin = 13,
+                             .pin = PIN::LED_BLUE_2,
                              .property = VehicleProperty::HVAC_DEFROSTER,
                              .type = VehiclePropertyType::INT32,
                              .outputValue =
@@ -131,7 +147,7 @@ std::vector<Pin> initPins() {
         (struct Pin){.isInput = true,
                      .inputPin =
                          (struct InputPin){
-                             .pins = {5, 11, 9},
+                             .pins = {PIN::SWITCH_1_A, PIN::SWITCH_1_B, PIN::SWITCH_1_C},
                              .property = VehicleProperty::HVAC_FAN_SPEED,
                              .type = VehiclePropertyType::INT32,
                              .inputValue =
@@ -154,7 +170,7 @@ GPIO::GPIO() {
     ALOGI("GPIO constructor");
 
     for (auto &pin : PINS) {
-        std::vector<uint8_t> pins = pin.isInput ? pin.inputPin.pins : std::vector<uint8_t>{pin.outputPin.pin};
+        std::vector<enum PIN> pins = pin.isInput ? pin.inputPin.pins : std::vector<enum PIN>{pin.outputPin.pin};
         std::vector<FILE *> fileDescriptors{};
 
         for (const auto &pinNumber : pins) {
