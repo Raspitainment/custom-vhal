@@ -287,6 +287,11 @@ GPIO::GPIO() {
             return;
         }
 
+        if (line_request.fd < 0) {
+            ALOGE("GPIO::GPIO() failed to get line fd");
+            return;
+        }
+
         if (pin.isInput) {
             pin.inputPin.fd = line_request.fd;
         } else {
