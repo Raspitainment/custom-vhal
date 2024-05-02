@@ -32,10 +32,10 @@ enum PIN {
     PHOTO_DIODE = 26,
     LED_GREEN_1 = 19,
     LED_YELLOW_1 = 13,
-    SWITCH_1_A = 6,
-    SWITCH_1_B = 5,
-    SWITCH_1_C = 0,
     LED_RED_1 = 11,
+    SWITCH_1_A = 6,
+    SWITCH_1_C = 0,
+    SWITCH_1_B = 5,
     LED_BLUE_1 = 9,
     LED_BLUE_2 = 10,
     LED_BLUE_3 = 22,
@@ -145,6 +145,15 @@ std::vector<Pin> initPins() {
                              .outputValue =
                                  [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
                          }},
+        (struct Pin){.isInput = false,
+                     .outputPin =
+                         (struct OutputPin){
+                             .pin = PIN::LED_BLUE_3,
+                             .property = VehicleProperty::HVAC_RECIRC_ON,
+                             .type = VehiclePropertyType::INT32,
+                             .outputValue =
+                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                         }},
         (struct Pin){.isInput = true,
                      .inputPin =
                          (struct InputPin){
@@ -161,6 +170,56 @@ std::vector<Pin> initPins() {
                                      return propValue;
                                  },
                          }},
+        (struct Pin){.isInput = true,
+                     .inputPin =
+                         (struct InputPin){
+                             .pins = {PIN::SWITCH_2_A, PIN::SWITCH_2_B, PIN::SWITCH_2_C},
+                             .property = VehicleProperty::HVAC_SEAT_TEMPERATURE,
+                             .type = VehiclePropertyType::INT32,
+                             .inputValue =
+                                 [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
+                                     propValue->areaId = SEAT_1_RIGHT;
+                                     propValue->value.int32Values[0] = gpioValues[2]   ? 1
+                                                                       : gpioValues[1] ? 0
+                                                                       : gpioValues[0] ? -1
+                                                                                       : -2;
+                                     return propValue;
+                                 },
+                         }},
+        (struct Pin){
+            .isInput = false,
+            .outputPin =
+                (struct OutputPin){
+                    .pin = PIN::LED_GREEN_1,
+                    .property = VehicleProperty::HVAC_TEMPERATURE_SET,
+                    .type = VehiclePropertyType::FLOAT,
+                    .outputValue =
+                        [](const VehiclePropValue &propValue) { return propValue.value.floatValues[0] <= 20.0; },
+                }},
+        (struct Pin){
+            .isInput = false,
+            .outputPin =
+                (struct OutputPin){
+                    .pin = PIN::LED_YELLOW_1,
+                    .property = VehicleProperty::HVAC_TEMPERATURE_SET,
+                    .type = VehiclePropertyType::FLOAT,
+                    .outputValue =
+                        [](const VehiclePropValue &propValue) {
+                            return propValue.value.floatValues[0] > 20.0 && propValue.value.floatValues[0] < 30.0;
+                        },
+                },
+        },
+        (struct Pin){
+            .isInput = false,
+            .outputPin =
+                (struct OutputPin){
+                    .pin = PIN::LED_RED_1,
+                    .property = VehicleProperty::HVAC_TEMPERATURE_SET,
+                    .type = VehiclePropertyType::FLOAT,
+                    .outputValue =
+                        [](const VehiclePropValue &propValue) { return propValue.value.floatValues[0] >= 30.0; },
+                },
+        },
 
     };
 }
