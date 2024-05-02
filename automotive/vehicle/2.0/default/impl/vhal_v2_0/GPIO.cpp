@@ -248,7 +248,7 @@ GPIO::GPIO() {
         return;
     }
 
-    struct gpiochip_info chip_info = {0};
+    struct gpiochip_info chip_info;
     int ret = ioctl(chip_fd, GPIO_GET_CHIPINFO_IOCTL, &chip_info);
     if (ret < 0) {
         ALOGE("GPIO::GPIO() ioctl failed with error %d (%s)", errno, strerror(errno));
