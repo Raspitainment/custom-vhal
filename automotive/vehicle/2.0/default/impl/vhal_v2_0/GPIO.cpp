@@ -1,4 +1,3 @@
-#include <linux/gpio.h>
 
 #define LOG_TAG "DefaultVehicleHal_v2_0_GPIO"
 
@@ -19,6 +18,12 @@
 #include "FakeObd2Frame.h"
 #include "PropertyUtils.h"
 #include "VehicleUtils.h"
+
+#include <errno.h>
+#include <linux/gpio.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
 
 #include "DefaultVehicleHal.h"
 
@@ -47,7 +52,7 @@ enum PIN {
 
 struct InputPin {
     std::vector<enum PIN> pins;
-    std::vector<FILE *> fileDescriptors;
+    int fd;
     VehicleProperty property;
     VehiclePropertyType type;
     std::function<VehicleHal::VehiclePropValuePtr(std::vector<bool>, VehicleHal::VehiclePropValuePtr)> inputValue;
@@ -56,20 +61,25 @@ struct InputPin {
     const VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) const {
         ALOGI("Reading value of property %d from GPIO", static_cast<int32_t>(property));
 
+        uint64_t mask = 0;
+        for (const auto &pin : pins) {
+            mask |= 1 << pin;
+        }
+
+        struct gpio_v2_line_values line_values = {
+            .mask = mask,
+            .values = {0},
+        };
+
+        int ret = ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &line_values);
+        if (ret < 0) {
+            ALOGE("ioctl failed with error %d (%s)", errno, strerror(errno));
+            return nullptr;
+        }
+
         std::vector<bool> gpioValues = {};
-
         for (unsigned long i = 0; i < pins.size(); i++) {
-            FILE *fileDescriptor = fileDescriptors[i];
-
-            rewind(fileDescriptor);
-
-            char gpioValue = '\0';
-            if (fread(&gpioValue, 1, 1, fileDescriptor) < 0) {
-                ALOGE("Failed to read GPIO value for pin %d", pins[i]);
-                return nullptr;
-            }
-
-            gpioValues.push_back(gpioValue == '1');
+            gpioValues[i] = line_values.values & (1 << pins[i]);
         }
 
         VehicleHal::VehiclePropValuePtr v = pool->obtain(type);
@@ -87,7 +97,7 @@ struct InputPin {
 
 struct OutputPin {
     enum PIN pin;
-    FILE *fileDescriptor;
+    int fd;
     VehicleProperty property;
     VehiclePropertyType type;
     std::function<bool(const VehiclePropValue &)> outputValue;
@@ -96,13 +106,16 @@ struct OutputPin {
     void write(const VehiclePropValue &propValue) const {
         ALOGI("Writing value of property %d to GPIO", static_cast<int32_t>(property));
 
-        char gpioValue = outputValue(propValue) ? '1' : '0';
-        ALOGI("Writing value %c to pin %d", gpioValue, pin);
+        uint64_t mask = 1 << pin;
+        uint64_t value = static_cast<uint64_t>(outputValue(propValue)) << pin;
+        struct gpio_v2_line_values line_values = {
+            .bits = value,
+            .mask = mask,
+        };
 
-        rewind(fileDescriptor);
-
-        if (fprintf(fileDescriptor, "%c", gpioValue) < 0) {
-            ALOGE("Failed to write GPIO value %c for pin %d", gpioValue, pin);
+        int ret = ioctl(fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &line_values);
+        if (ret < 0) {
+            ALOGE("ioctl failed with error %d (%s)", errno, strerror(errno));
         }
     }
 };
@@ -230,72 +243,53 @@ std::vector<Pin> PINS = initPins();
 GPIO::GPIO() {
     ALOGI("GPIO constructor");
 
+    int chip_fd = open("/dev/gpiochip0", O_RDWR);
+    if (chip_fd < 0) {
+        ALOGE("Failed to open /dev/gpiochip0");
+        return;
+    }
+
     for (auto &pin : PINS) {
         std::vector<enum PIN> pins = pin.isInput ? pin.inputPin.pins : std::vector<enum PIN>{pin.outputPin.pin};
-        std::vector<FILE *> fileDescriptors{};
 
-        for (const auto &pinNumber : pins) {
-            FILE *exportDevice = fopen("/sys/class/gpio/export", "w");
-            if (exportDevice == NULL) {
-                ALOGE("Failed to open /sys/class/gpio/export");
-                continue;
-            }
+        uint32_t offsets[GPIO_V2_LINES_MAX];
+        for (unsigned long i = 0; i < pins.size(); i++) {
+            offsets[i] = pins[i];
+        }
 
-            if (fprintf(exportDevice, "%d", pinNumber) < 0) {
-                ALOGE("Failed to export GPIO");
-                fclose(exportDevice);
-                continue;
-            }
+        struct gpio_v2_line_config config = {
+            .flags =
+                GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN | pin.isInput ? GPIO_V2_LINE_FLAG_INPUT : GPIO_V2_LINE_FLAG_OUTPUT,
+            .num_attrs = 0,
+        };
 
-            fclose(exportDevice);
+        struct gpio_v2_line_request line_request = {
+            .offsets = offsets,
+            .consumer = "raspitainment",
+            .config = config,
+            .num_lines = pins.size(),
+            .event_buffer_size = 0,
+            .padding = {0},
+            .fd = -1,
+        };
 
-            // set direction of GPIO pin
-            char path[256];
-            snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/direction", pinNumber);
-            FILE *directionDevice = fopen(path, "w");
-            if (directionDevice == NULL) {
-                ALOGE("Failed to open %s", path);
-                continue;
-            }
-
-            const char *direction = pin.isInput ? "in" : "out";
-            if (fprintf(directionDevice, "%s", direction) < 0) {
-                ALOGE("Failed to set direction of GPIO");
-                fclose(directionDevice);
-                continue;
-            }
-
-            fclose(directionDevice);
-
-            // open GPIO pin
-            snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/value", pinNumber);
-
-            FILE *fileDescriptor;
-            if (pin.isInput) {
-                fileDescriptor = fopen(path, "r");
-            } else {
-                fileDescriptor = fopen(path, "w");
-            }
-
-            if (fileDescriptor == NULL) {
-                ALOGE("Failed to open %s", path);
-                continue;
-            }
-
-            fileDescriptors.push_back(fileDescriptor);
+        int ret = ioctl(chip_fd, GPIO_V2_GET_LINE_IOCTL, &line_request);
+        if (ret < 0) {
+            ALOGE("ioctl failed with error %d (%s)", errno, strerror(errno));
+            return;
         }
 
         if (pin.isInput) {
-            pin.inputPin.fileDescriptors = fileDescriptors;
+            pin.inputPin.fd = line_request.fd;
         } else {
-            pin.outputPin.fileDescriptor = fileDescriptors[0];
+            pin.outputPin.fd = line_request.fd;
         }
     }
 }
 
 GPIO::~GPIO() {
     ALOGI("GPIO destructor");
-    // do stuff here
+    // ideally we would do stuff here
 }
 
 void GPIO::readAll(VehiclePropValuePool *pool, VehicleHalClient *vehicleClient) {
