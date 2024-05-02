@@ -73,7 +73,7 @@ struct InputPin {
 
         int ret = ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, &line_values);
         if (ret < 0) {
-            ALOGE("ioctl failed with error %d (%s)", errno, strerror(errno));
+            ALOGE("InputPin::read() ioctl failed with error %d (%s)", errno, strerror(errno));
             return nullptr;
         }
 
@@ -115,7 +115,7 @@ struct OutputPin {
 
         int ret = ioctl(fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &line_values);
         if (ret < 0) {
-            ALOGE("ioctl failed with error %d (%s)", errno, strerror(errno));
+            ALOGE("OutputPin::write() ioctl failed with error %d (%s)", errno, strerror(errno));
         }
     }
 };
@@ -249,6 +249,17 @@ GPIO::GPIO() {
         return;
     }
 
+    struct gpiochip_info chip_info = {0};
+    int ret = ioctl(chip_fd, GPIO_GET_CHIPINFO_IOCTL, &chip_info);
+    if (ret < 0) {
+        ALOGE("GPIO::GPIO() ioctl failed with error %d (%s)", errno, strerror(errno));
+        return;
+    }
+
+    ALOGI("GPIO chip name: %s", chip_info.name);
+    ALOGI("GPIO chip label: %s", chip_info.label);
+    ALOGI("GPIO chip lines: %d", chip_info.lines);
+
     for (auto &pin : PINS) {
         std::vector<enum PIN> pins = pin.isInput ? pin.inputPin.pins : std::vector<enum PIN>{pin.outputPin.pin};
 
@@ -273,7 +284,7 @@ GPIO::GPIO() {
 
         int ret = ioctl(chip_fd, GPIO_V2_GET_LINE_IOCTL, &line_request);
         if (ret < 0) {
-            ALOGE("ioctl failed with error %d (%s)", errno, strerror(errno));
+            ALOGE("GPIO::GPIO() ioctl failed with error %d (%s)", errno, strerror(errno));
             return;
         }
 
@@ -322,8 +333,6 @@ void GPIO::write(const VehiclePropValue &propValue) {
 
         pin.outputPin.write(propValue);
     }
-
-    ALOGE("Failed to write value of property %d to GPIO", propValue.prop);
 }
 
 } // namespace impl
