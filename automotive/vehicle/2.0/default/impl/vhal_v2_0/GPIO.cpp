@@ -39,8 +39,8 @@ enum PIN {
     LED_YELLOW_1 = 13,
     LED_RED_1 = 11,
     SWITCH_1_A = 6,
-    SWITCH_1_B = 5,
-    SWITCH_1_C = 0,
+    SWITCH_1_B = 0,
+    SWITCH_1_C = 5,
     LED_BLUE_1 = 9,
     LED_BLUE_2 = 10,
     LED_BLUE_3 = 22,
@@ -141,7 +141,7 @@ std::vector<Pin> initPins() {
                              .property = VehicleProperty::HVAC_AC_ON,
                              .type = VehiclePropertyType::INT32,
                              .outputValue =
-                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 1; },
                          }},
         (struct Pin){.isInput = false,
                      .outputPin =
@@ -150,7 +150,7 @@ std::vector<Pin> initPins() {
                              .property = VehicleProperty::HVAC_DEFROSTER,
                              .type = VehiclePropertyType::INT32,
                              .outputValue =
-                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 1; },
                          }},
         (struct Pin){.isInput = false,
                      .outputPin =
@@ -159,7 +159,7 @@ std::vector<Pin> initPins() {
                              .property = VehicleProperty::HVAC_RECIRC_ON,
                              .type = VehiclePropertyType::INT32,
                              .outputValue =
-                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 0; },
+                                 [](const VehiclePropValue &propValue) { return propValue.value.int32Values[0] == 1; },
                          }},
         (struct Pin){.isInput = true,
                      .inputPin =
@@ -185,11 +185,11 @@ std::vector<Pin> initPins() {
                              .type = VehiclePropertyType::INT32,
                              .inputValue =
                                  [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
-                                     propValue->areaId = SEAT_1_RIGHT;
-                                     propValue->value.int32Values[0] = gpioValues[2]   ? 1
-                                                                       : gpioValues[1] ? 0
-                                                                       : gpioValues[0] ? -1
-                                                                                       : -2;
+                                     propValue->areaId = SEAT_1_LEFT;
+                                     propValue->value.int32Values[0] = gpioValues[2]   ? -2
+                                                                       : gpioValues[1] ? 2
+                                                                       : gpioValues[0] ? 1
+                                                                                       : 0;
                                      return propValue;
                                  },
                          }},
@@ -212,7 +212,7 @@ std::vector<Pin> initPins() {
                     .type = VehiclePropertyType::FLOAT,
                     .outputValue =
                         [](const VehiclePropValue &propValue) {
-                            return propValue.value.floatValues[0] > 20.0 && propValue.value.floatValues[0] < 30.0;
+                            return propValue.value.floatValues[0] > 20.0 && propValue.value.floatValues[0] < 24.0;
                         },
                 },
         },
@@ -224,7 +224,7 @@ std::vector<Pin> initPins() {
                     .property = VehicleProperty::HVAC_TEMPERATURE_SET,
                     .type = VehiclePropertyType::FLOAT,
                     .outputValue =
-                        [](const VehiclePropValue &propValue) { return propValue.value.floatValues[0] >= 30.0; },
+                        [](const VehiclePropValue &propValue) { return propValue.value.floatValues[0] >= 24.0; },
                 },
         },
 
