@@ -253,8 +253,8 @@ GPIO::GPIO() {
         std::vector<enum PIN> pins = pin.isInput ? pin.inputPin.pins : std::vector<enum PIN>{pin.outputPin.pin};
 
         struct gpio_v2_line_config config = {
-            .flags =
-                GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN | (pin.isInput ? GPIO_V2_LINE_FLAG_INPUT : GPIO_V2_LINE_FLAG_OUTPUT),
+            .flags = GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN |
+                     (uint64_t)(pin.isInput ? GPIO_V2_LINE_FLAG_INPUT : GPIO_V2_LINE_FLAG_OUTPUT),
             .num_attrs = 0,
         };
 
