@@ -60,13 +60,8 @@ struct InputPin {
     const VehicleHal::VehiclePropValuePtr read(VehiclePropValuePool *pool) const {
         ALOGI("Reading value of property %d from GPIO", static_cast<int32_t>(property));
 
-        uint64_t mask = 0;
-        for (size_t i = 0; i < pins.size(); i++) {
-            mask |= 1 << i;
-        }
-
         struct gpio_v2_line_values line_values = {
-            .mask = mask,
+            .mask = (1 << pins.size()) - 1,
             .bits = 0,
         };
 
@@ -78,7 +73,7 @@ struct InputPin {
 
         std::vector<bool> gpioValues = {};
         for (unsigned long i = 0; i < pins.size(); i++) {
-            gpioValues.push_back((line_values.bits & (1 << pins[i])) != 0);
+            gpioValues.push_back((line_values.bits & (1 << i)) != 0);
         }
 
         VehicleHal::VehiclePropValuePtr v = pool->obtain(type);
