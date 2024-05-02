@@ -1,4 +1,3 @@
-
 #define LOG_TAG "DefaultVehicleHal_v2_0_GPIO"
 
 #include <android-base/chrono_utils.h>
@@ -79,7 +78,7 @@ struct InputPin {
 
         std::vector<bool> gpioValues = {};
         for (unsigned long i = 0; i < pins.size(); i++) {
-            gpioValues[i] = line_values.bits & (1 << pins[i]);
+            gpioValues.push_back((line_values.bits & (1 << pins[i])) != 0);
         }
 
         VehicleHal::VehiclePropValuePtr v = pool->obtain(type);
@@ -107,9 +106,9 @@ struct OutputPin {
         ALOGI("Writing value of property %d to GPIO", static_cast<int32_t>(property));
 
         uint64_t mask = 1 << pin;
-        uint64_t value = static_cast<uint64_t>(outputValue(propValue)) << pin;
+        uint64_t bits = static_cast<uint64_t>(outputValue(propValue)) << pin;
         struct gpio_v2_line_values line_values = {
-            .bits = value,
+            .bits = bits,
             .mask = mask,
         };
 
