@@ -252,26 +252,24 @@ GPIO::GPIO() {
     for (auto &pin : PINS) {
         std::vector<enum PIN> pins = pin.isInput ? pin.inputPin.pins : std::vector<enum PIN>{pin.outputPin.pin};
 
-        uint32_t offsets[GPIO_V2_LINES_MAX];
-        for (unsigned long i = 0; i < pins.size(); i++) {
-            offsets[i] = pins[i];
-        }
-
         struct gpio_v2_line_config config = {
             .flags =
-                GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN | pin.isInput ? GPIO_V2_LINE_FLAG_INPUT : GPIO_V2_LINE_FLAG_OUTPUT,
+                GPIO_V2_LINE_FLAG_BIAS_PULL_DOWN | (pin.isInput ? GPIO_V2_LINE_FLAG_INPUT : GPIO_V2_LINE_FLAG_OUTPUT),
             .num_attrs = 0,
         };
 
         struct gpio_v2_line_request line_request = {
-            .offsets = offsets,
+            .offsets = {0},
             .consumer = "raspitainment",
             .config = config,
-            .num_lines = pins.size(),
+            .num_lines = (uint32_t)pins.size(),
             .event_buffer_size = 0,
             .padding = {0},
             .fd = -1,
         };
+        for (size_t i = 0; i < pins.size(); i++) {
+            line_request.offsets[i] = pins[i];
+        }
 
         int ret = ioctl(chip_fd, GPIO_V2_GET_LINE_IOCTL, &line_request);
         if (ret < 0) {
