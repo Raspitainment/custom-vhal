@@ -1,3 +1,4 @@
+#include <linux/gpio.h>
 
 #define LOG_TAG "DefaultVehicleHal_v2_0_GPIO"
 
@@ -34,8 +35,8 @@ enum PIN {
     LED_YELLOW_1 = 13,
     LED_RED_1 = 11,
     SWITCH_1_A = 6,
-    SWITCH_1_C = 0,
     SWITCH_1_B = 5,
+    SWITCH_1_C = 0,
     LED_BLUE_1 = 9,
     LED_BLUE_2 = 10,
     LED_BLUE_3 = 22,
@@ -328,7 +329,6 @@ void GPIO::write(const VehiclePropValue &propValue) {
         }
 
         pin.outputPin.write(propValue);
-        return;
     }
 
     ALOGE("Failed to write value of property %d to GPIO", propValue.prop);
