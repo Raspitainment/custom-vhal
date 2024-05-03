@@ -45,8 +45,8 @@ enum PIN {
     LED_BLUE_2 = 10,
     LED_BLUE_3 = 22,
     SWITCH_2_A = 4,
-    SWITCH_2_B = 27,
-    SWITCH_2_C = 17,
+    SWITCH_2_B = 17,
+    SWITCH_2_C = 27,
 };
 
 struct InputPin {
