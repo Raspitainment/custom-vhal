@@ -45,8 +45,8 @@ enum PIN {
     LED_BLUE_2 = 10,
     LED_BLUE_3 = 22,
     SWITCH_2_A = 27,
-    SWITCH_2_B = 17,
-    SWITCH_2_C = 4,
+    SWITCH_2_B = 4,
+    SWITCH_2_C = 17,
 };
 
 struct InputPin {
@@ -186,7 +186,7 @@ std::vector<Pin> initPins() {
                              .inputValue =
                                  [](std::vector<bool> gpioValues, VehicleHal::VehiclePropValuePtr propValue) {
                                      propValue->areaId = SEAT_1_LEFT;
-                                     propValue->value.int32Values[0] = gpioValues[2]   ? -2
+                                     propValue->value.int32Values[0] = gpioValues[2]   ? 3
                                                                        : gpioValues[1] ? 2
                                                                        : gpioValues[0] ? 1
                                                                                        : 0;
